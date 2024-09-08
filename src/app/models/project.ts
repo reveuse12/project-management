@@ -10,15 +10,21 @@ const projectsSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    organizationId: {
+    organization: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Organization",
       required: true,
     },
     members: [
       {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+        user: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+        role: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Role",
+        },
       },
     ],
     tasks: [
@@ -27,9 +33,16 @@ const projectsSchema = new mongoose.Schema(
         ref: "Task",
       },
     ],
-    completed: {
-      type: Boolean,
-      default: false,
+    status: {
+      type: String,
+      enum: ["not started", "in progress", "completed"],
+      default: "not started",
+    },
+    startDate: {
+      type: Date,
+    },
+    endDate: {
+      type: Date,
     },
   },
   { timestamps: true }

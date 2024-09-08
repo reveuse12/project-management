@@ -6,6 +6,10 @@ const organizationSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    description: {
+      type: String,
+      trim: true,
+    },
     projects: [
       {
         type: mongoose.Schema.Types.ObjectId,
@@ -14,8 +18,14 @@ const organizationSchema = new mongoose.Schema(
     ],
     members: [
       {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+        user: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+        role: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Role",
+        },
       },
     ],
     admin: {
@@ -28,7 +38,7 @@ const organizationSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    upatedBy: {
+    updatedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
