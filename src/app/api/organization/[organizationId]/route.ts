@@ -1,16 +1,25 @@
-import User from "@/app/models/users";
-import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { decryptToken } from "@/app/helpers/generateToken";
 import connectDB from "@/app/db/connectDB";
+import { decryptToken } from "@/app/helpers/generateToken";
 import Organization from "@/app/models/organization";
+import User from "@/app/models/users";
+import { cookies } from "next/headers";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(request: NextRequest) {
+type Params = {
+  organizationId: string;
+};
+
+//update organization
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Params }
+) {
   try {
     await connectDB();
     const cookieStore = cookies();
     const token = cookieStore.get("token");
-
+    const organizationId = params;
+    console.log(organizationId);
     if (!token)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
@@ -18,37 +27,33 @@ export async function POST(request: NextRequest) {
     if (!name)
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
 
-    // decrypt the token and get the user id
     const _id = (await decryptToken(token.value)) as string;
 
     const user = await User.findById(_id);
     if (!user)
       return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-    // create organization
-    const organization = await Organization.create({
-      name,
-      description,
-      project,
-      members,
-      admin: user._id,
-      createdBy: user._id,
-      updatedBy: user._id,
-    });
-
-    // add organization to user's organizations array
-    user.organizations.push(organization._id);
-    await user.save();
+    const organization = await Organization.findByIdAndUpdate(
+      params.organizationId,
+      {
+        name,
+        description,
+        project,
+        members,
+        updatedBy: user._id,
+      },
+      { new: true }
+    );
 
     if (!organization)
       return NextResponse.json(
-        { error: "Error Creating Organization" },
+        { error: "Error Updating Organization" },
         { status: 500 }
       );
 
     return NextResponse.json(
-      { message: "Organization created success!" },
-      { status: 201 }
+      { message: "Organization updated success!" },
+      { status: 200 }
     );
   } catch (error) {
     return NextResponse.json(
@@ -58,8 +63,11 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Get all organizations
-export async function GET() {
+//delete organization
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Params }
+) {
   try {
     await connectDB();
     const cookieStore = cookies();
@@ -70,12 +78,22 @@ export async function GET() {
 
     const _id = (await decryptToken(token.value)) as string;
 
-    const user = await User.findById(_id).populate("organizations");
+    const user = await User.findById(_id);
     if (!user)
       return NextResponse.json({ error: "User not found" }, { status: 404 });
 
+    const organization = await Organization.findByIdAndDelete(
+      params.organizationId
+    );
+
+    if (!organization)
+      return NextResponse.json(
+        { error: "Error Deleting Organization" },
+        { status: 500 }
+      );
+
     return NextResponse.json(
-      { organizations: user.organizations },
+      { message: "Organization deleted success!" },
       { status: 200 }
     );
   } catch (error) {
