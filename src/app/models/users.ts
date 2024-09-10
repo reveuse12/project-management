@@ -29,8 +29,14 @@ const userSchema = new mongoose.Schema(
     },
     organizations: [
       {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Organization",
+        organization: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Organization",
+        },
+        role: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Role",
+        },
       },
     ],
     password: {
