@@ -1,17 +1,15 @@
 import User from "@/app/models/users";
 import { NextRequest, NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { decryptToken } from "@/app/helpers/generateToken";
+import { cookieExtraction } from "@/app/helpers/generateToken";
 import connectDB from "@/app/db/connectDB";
 import Organization from "@/app/models/organization";
 
 export async function POST(request: NextRequest) {
   try {
     await connectDB();
-    const cookieStore = cookies();
-    const token = cookieStore.get("token");
+    const decoded = await cookieExtraction();
 
-    if (!token)
+    if (!decoded)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { name, description, project, members } = await request.json();
@@ -19,7 +17,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
 
     // decrypt the token and get the user id
-    const _id = (await decryptToken(token.value)) as string;
+    const _id = decoded._id as string;
 
     const user = await User.findById(_id);
     if (!user)
@@ -62,13 +60,13 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   try {
     await connectDB();
-    const cookieStore = cookies();
-    const token = cookieStore.get("token");
 
-    if (!token)
+    const decoded = await cookieExtraction();
+
+    if (!decoded)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const _id = (await decryptToken(token.value)) as string;
+    const _id = decoded._id as string;
 
     const user = await User.findById(_id).populate("organizations");
     if (!user)

@@ -46,7 +46,7 @@ export async function PUT(
         members,
         updatedBy: user._id,
       },
-      { new: true } // Return the updated document
+      { new: true }
     );
 
     if (!organization) {
