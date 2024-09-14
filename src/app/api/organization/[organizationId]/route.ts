@@ -115,3 +115,27 @@ export async function DELETE(
     );
   }
 }
+
+// get organization by id
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Params }
+) {
+  try {
+    await connectDB();
+    const organization = await Organization.findById(params.organizationId);
+    if (!organization) {
+      return NextResponse.json(
+        { error: "Organization not found" },
+        { status: 404 }
+      );
+    }
+    return NextResponse.json(organization);
+  } catch (error) {
+    console.error("Error getting organization by id:", error);
+    return NextResponse.json(
+      { error: "Something went wrong" },
+      { status: 500 }
+    );
+  }
+}
