@@ -1,3 +1,5 @@
+import { Icons } from "@/components/icons";
+
 export interface SendEmailParams {
   email: string;
   emailType: "VERIFY" | "RESET";
@@ -16,4 +18,14 @@ export interface MailResponse {
 export interface LoginRequestBody {
   username: string;
   password: string;
+}
+
+export interface NavItem {
+  title: string;
+  href?: string;
+  disabled?: boolean;
+  external?: boolean;
+  icon?: keyof typeof Icons; // Correctly type icon to be keyof Icons
+  label?: string;
+  description?: string;
 }

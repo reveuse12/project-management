@@ -23,21 +23,22 @@ export async function GET(
       );
     }
 
-    const user = await User.findById(userId).populate({
-      path: "organizations.organization",
-      model: Organization,
-    });
+    const user = await User.findById(userId)
+      .populate({
+        path: "organizations.organization",
+        model: Organization,
+        select: "+name",
+      })
+      .lean();
 
     // Check if user exists
     if (!user) {
       return NextResponse.json({ message: "User not found" }, { status: 404 });
     }
+    console.log(user);
 
     // Return user's organizations
-    return NextResponse.json(
-      { organizations: user.organizations },
-      { status: 200 }
-    );
+    return NextResponse.json({ organizations: user }, { status: 200 });
   } catch (error) {
     console.error("Error fetching organizations:", error);
     return NextResponse.json(
