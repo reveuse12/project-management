@@ -1,14 +1,47 @@
+"use client";
 import Image from "next/image";
 import Link from "next/link";
-
+import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
-export const description =
-  "A login page with two columns. The first column has the login form with email and password. There's a Forgot your passwork link and a link to sign up if you do not have an account. The second column has a cover image.";
+import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 
 export default function Login() {
+  const navigate = useRouter();
+  //get cookie
+  const cookie = document.cookie;
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
+
+  const handleChange = (event: { target: { name: string; value: string } }) => {
+    setFormData({ ...formData, [event.target.name]: event.target.value });
+  };
+
+  const handleSubmit = async (event: { preventDefault: () => void }) => {
+    event.preventDefault();
+    try {
+      const { loading, error, data } = useQuery({
+        queryKey: ["login"],
+        queryFn: async () => {
+          const response = await axios.post("/api/auth/login", formData, {
+            withCredentials: true,
+          });
+          return response.data;
+        },
+      });
+
+      navigate.push("/dashboard");
+    } catch (error) {
+      console.error("Error logging in:", error);
+    } finally {
+    }
+  };
+
   return (
     <div className="w-full lg:grid lg:min-h-screen lg:grid-cols-2 xl:min-h-screen">
       <div className="flex items-center justify-center py-12">
@@ -27,6 +60,7 @@ export default function Login() {
                 type="email"
                 placeholder="m@example.com"
                 required
+                onChange={handleChange}
               />
             </div>
             <div className="grid gap-2">
@@ -39,9 +73,14 @@ export default function Login() {
                   Forgot your password?
                 </Link>
               </div>
-              <Input id="password" type="password" required />
+              <Input
+                id="password"
+                type="password"
+                onChange={handleChange}
+                required
+              />
             </div>
-            <Button type="submit" className="w-full">
+            <Button type="submit" onClick={handleSubmit} className="w-full">
               Login
             </Button>
             <Button variant="outline" className="w-full">
