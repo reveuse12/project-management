@@ -25,7 +25,46 @@ export interface NavItem {
   href?: string;
   disabled?: boolean;
   external?: boolean;
-  icon?: keyof typeof Icons; // Correctly type icon to be keyof Icons
+  icon?: keyof typeof Icons;
   label?: string;
   description?: string;
+}
+
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+}
+
+export interface Organization {
+  id: string;
+  name: string;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+}
+export interface AuthState {
+  token: string;
+  refreshToken: string;
+  user: User | null;
+  organizations: Organization[];
+  projects: Project[];
+  setUser: (user: User | null) => void;
+  setToken: (token: string) => void;
+  setRefreshToken: (refreshToken: string) => void;
+  setOrganizations: (organizations: Organization[]) => void;
+  setProjects: (projects: Project[]) => void;
+}
+
+export interface Configuration {
+  jobs: string[];
+  departments: string[];
+  employees: string[];
+}
+
+export interface ConfigurationsState {
+  configurations: Configuration;
+  setConfigurations: (configurations: Configuration) => void;
 }

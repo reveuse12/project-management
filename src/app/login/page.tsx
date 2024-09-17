@@ -6,40 +6,43 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useState } from "react";
+import { useAuthStore } from "../store/store";
 
 export default function Login() {
-  const navigate = useRouter();
-  //get cookie
-  const cookie = document.cookie;
+  const router = useRouter();
+  const { setToken, setRefreshToken } = useAuthStore();
   const [formData, setFormData] = useState({
-    email: "",
+    username: "",
     password: "",
   });
 
-  const handleChange = (event: { target: { name: string; value: string } }) => {
-    setFormData({ ...formData, [event.target.name]: event.target.value });
+  const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = event.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (event: { preventDefault: () => void }) => {
-    event.preventDefault();
-    try {
-      const { loading, error, data } = useQuery({
-        queryKey: ["login"],
-        queryFn: async () => {
-          const response = await axios.post("/api/auth/login", formData, {
-            withCredentials: true,
-          });
-          return response.data;
-        },
+  const loginMutation = useMutation({
+    mutationFn: async (loginData: typeof formData) => {
+      const response = await axios.post("/api/user/login", loginData, {
+        withCredentials: true,
       });
-
-      navigate.push("/dashboard");
-    } catch (error) {
+      return response.data;
+    },
+    onSuccess: (data) => {
+      setToken(data.accessToken);
+      setRefreshToken(data.refreshToken);
+      router.push("/dashboard");
+    },
+    onError: (error) => {
       console.error("Error logging in:", error);
-    } finally {
-    }
+    },
+  });
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    loginMutation.mutate(formData);
   };
 
   return (
@@ -52,14 +55,16 @@ export default function Login() {
               Enter your email below to login to your account
             </p>
           </div>
-          <div className="grid gap-4">
+          <form onSubmit={handleSubmit} className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
               <Input
-                id="email"
-                type="email"
+                id="username"
+                name="username"
+                type="username"
                 placeholder="m@example.com"
                 required
+                value={formData.username}
                 onChange={handleChange}
               />
             </div>
@@ -75,21 +80,27 @@ export default function Login() {
               </div>
               <Input
                 id="password"
+                name="password"
                 type="password"
+                value={formData.password}
                 onChange={handleChange}
                 required
               />
             </div>
-            <Button type="submit" onClick={handleSubmit} className="w-full">
-              Login
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={loginMutation.isPending}
+            >
+              {loginMutation.isPending ? "Logging in..." : "Login"}
             </Button>
-            <Button variant="outline" className="w-full">
+            <Button type="button" variant="outline" className="w-full">
               Login with Google
             </Button>
-          </div>
+          </form>
           <div className="mt-4 text-center text-sm">
             Don&apos;t have an account?{" "}
-            <Link href="#" className="underline">
+            <Link href="/signup" className="underline">
               Sign up
             </Link>
           </div>
@@ -97,11 +108,11 @@ export default function Login() {
       </div>
       <div className="hidden bg-muted lg:block">
         <Image
-          src="/placeholder.svg"
+          src="/AI.jpg"
           alt="Image"
-          width="1920"
-          height="1080"
-          className="h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+          width={1920}
+          height={1080}
+          className="h-screen w-screen object-cover"
         />
       </div>
     </div>

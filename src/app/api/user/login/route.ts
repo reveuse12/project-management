@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     );
 
     return NextResponse.json(
-      { message: "Login Success" },
+      { message: "Login Success", accessToken, refreshToken },
       {
         status: 200,
         headers: headers,
