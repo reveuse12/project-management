@@ -14,7 +14,7 @@ export async function GET(
   try {
     await connectDB();
     const { userId } = params;
-    console.log(userId);
+    console.log(request);
 
     if (!userId) {
       return NextResponse.json(
