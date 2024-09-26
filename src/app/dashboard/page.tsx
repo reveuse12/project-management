@@ -1,160 +1,283 @@
-import { ScrollArea } from "@/components/ui/scroll-area";
-import React from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+"use client";
 
-const Dashboard = () => {
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
+import {
+  Building2,
+  Users,
+  Briefcase,
+  CheckSquare,
+  TrendingUp,
+  ArrowUpRight,
+  ArrowDownRight,
+} from "lucide-react";
+import Link from "next/link";
+import { ScrollArea } from "@/components/ui/scroll-area";
+
+const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
+
+export default function AdminDashboardPage() {
+  const [stats, setStats] = useState({
+    organizations: { total: 25, change: 5 },
+    projects: { total: 78, change: -3 },
+    users: { total: 1250, change: 50 },
+    tasks: { total: 456, change: 22 },
+  });
+
+  const [projectStatus, setProjectStatus] = useState([
+    { name: "Not Started", value: 10 },
+    { name: "In Progress", value: 25 },
+    { name: "Completed", value: 15 },
+  ]);
+
+  const [monthlyTasks, setMonthlyTasks] = useState([
+    { name: "Jan", tasks: 65 },
+    { name: "Feb", tasks: 59 },
+    { name: "Mar", tasks: 80 },
+    { name: "Apr", tasks: 81 },
+    { name: "May", tasks: 56 },
+    { name: "Jun", tasks: 55 },
+  ]);
+
+  const [recentProjects, setRecentProjects] = useState([
+    {
+      id: "1",
+      title: "Website Redesign",
+      organization: "Acme Inc.",
+      progress: 75,
+    },
+    {
+      id: "2",
+      title: "Mobile App Development",
+      organization: "Tech Corp",
+      progress: 30,
+    },
+    {
+      id: "3",
+      title: "Database Migration",
+      organization: "Innovate LLC",
+      progress: 100,
+    },
+    {
+      id: "4",
+      title: "AI Integration",
+      organization: "Future Systems",
+      progress: 10,
+    },
+  ]);
+
+  const [topUsers, setTopUsers] = useState([
+    { id: "1", fullname: "John Doe", email: "john@example.com", tasks: 23 },
+    { id: "2", fullname: "Jane Smith", email: "jane@example.com", tasks: 19 },
+    { id: "3", fullname: "Bob Johnson", email: "bob@example.com", tasks: 17 },
+    { id: "4", fullname: "Alice Brown", email: "alice@example.com", tasks: 15 },
+  ]);
+
   return (
-    <ScrollArea className="p-4">
-      <div className="space-y-2">
-        <div className="flex items-center justify-between space-y-2">
-          <h2 className="text-2xl font-bold tracking-tight">
-            Hi, Welcome back 👋
-          </h2>
-          <div className="hidden items-center space-x-2 md:flex">
-            {/* <CalendarDateRangePicker /> */}
-            <Button>Download</Button>
-          </div>
+    <ScrollArea>
+      <div className="container h-screen mx-auto p-4 space-y-6">
+        <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
+
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[
+            {
+              title: "Organizations",
+              value: stats.organizations.total,
+              icon: Building2,
+              change: stats.organizations.change,
+            },
+            {
+              title: "Projects",
+              value: stats.projects.total,
+              icon: Briefcase,
+              change: stats.projects.change,
+            },
+            {
+              title: "Users",
+              value: stats.users.total,
+              icon: Users,
+              change: stats.users.change,
+            },
+            {
+              title: "Tasks",
+              value: stats.tasks.total,
+              icon: CheckSquare,
+              change: stats.tasks.change,
+            },
+          ].map((item) => (
+            <Card key={item.title}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  {item.title}
+                </CardTitle>
+                <item.icon className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {item.value.toLocaleString()}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {item.change > 0 ? (
+                    <span className="text-green-600 flex items-center">
+                      <ArrowUpRight className="h-4 w-4 mr-1" />
+                      {item.change} increase
+                    </span>
+                  ) : (
+                    <span className="text-red-600 flex items-center">
+                      <ArrowDownRight className="h-4 w-4 mr-1" />
+                      {Math.abs(item.change)} decrease
+                    </span>
+                  )}
+                </p>
+              </CardContent>
+            </Card>
+          ))}
         </div>
-        <Tabs defaultValue="overview" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="analytics" disabled>
-              Analytics
-            </TabsTrigger>
-          </TabsList>
-          <TabsContent value="overview" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Total Revenue
-                  </CardTitle>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    className="h-4 w-4 text-muted-foreground"
+
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
+          <Card className="col-span-4">
+            <CardHeader>
+              <CardTitle>Monthly Tasks</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={monthlyTasks}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="tasks" fill="#8884d8" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+          <Card className="col-span-3">
+            <CardHeader>
+              <CardTitle>Project Status</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={projectStatus}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                    label={({ name, percent }) =>
+                      `${name} ${(percent * 100).toFixed(0)}%`
+                    }
                   >
-                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                  </svg>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">$45,231.89</div>
-                  <p className="text-xs text-muted-foreground">
-                    +20.1% from last month
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Subscriptions
-                  </CardTitle>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    className="h-4 w-4 text-muted-foreground"
-                  >
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-                  </svg>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">+2350</div>
-                  <p className="text-xs text-muted-foreground">
-                    +180.1% from last month
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Sales</CardTitle>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    className="h-4 w-4 text-muted-foreground"
-                  >
-                    <rect width="20" height="14" x="2" y="5" rx="2" />
-                    <path d="M2 10h20" />
-                  </svg>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">+12,234</div>
-                  <p className="text-xs text-muted-foreground">
-                    +19% from last month
-                  </p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">
-                    Active Now
-                  </CardTitle>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    className="h-4 w-4 text-muted-foreground"
-                  >
-                    <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
-                  </svg>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">+573</div>
-                  <p className="text-xs text-muted-foreground">
-                    +201 since last hour
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-7">
-              <div className="col-span-4">{/* <BarGraph /> */}Graph 1</div>
-              <Card className="col-span-4 md:col-span-3">
-                <CardHeader>
-                  <CardTitle>Recent Sales</CardTitle>
-                  <CardDescription>
-                    You made 265 sales this month.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>{/* <RecentSales /> */}Sales</CardContent>
-              </Card>
-              <div className="col-span-4">{/* <AreaGraph /> */} Graph</div>
-              <div className="col-span-4 md:col-span-3">
-                {/* <PieGraph /> */}Graph
+                    {projectStatus.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={COLORS[index % COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Projects</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-8">
+                {recentProjects.map((project) => (
+                  <div key={project.id} className="flex items-center">
+                    <Avatar className="h-9 w-9">
+                      <AvatarImage
+                        src={`/placeholder.svg?height=36&width=36`}
+                        alt={project.title}
+                      />
+                      <AvatarFallback>
+                        {project.title.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="ml-4 space-y-1">
+                      <p className="text-sm font-medium leading-none">
+                        {project.title}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {project.organization}
+                      </p>
+                    </div>
+                    <div className="ml-auto font-medium">
+                      {project.progress === 100 ? (
+                        <Badge>Completed</Badge>
+                      ) : (
+                        <span className="flex items-center">
+                          <TrendingUp className="mr-1 h-4 w-4 text-muted-foreground" />
+                          {project.progress}%
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
-          </TabsContent>
-        </Tabs>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Top Users</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-8">
+                {topUsers.map((user) => (
+                  <div key={user.id} className="flex items-center">
+                    <Avatar className="h-9 w-9">
+                      <AvatarImage
+                        src={`/placeholder.svg?height=36&width=36`}
+                        alt={user.fullname}
+                      />
+                      <AvatarFallback>
+                        {user.fullname
+                          .split(" ")
+                          .map((n) => n[0])
+                          .join("")}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="ml-4 space-y-1">
+                      <p className="text-sm font-medium leading-none">
+                        {user.fullname}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {user.email}
+                      </p>
+                    </div>
+                    <div className="ml-auto font-medium">
+                      {user.tasks} tasks
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </ScrollArea>
   );
-};
-
-export default Dashboard;
+}
