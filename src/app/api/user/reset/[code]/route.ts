@@ -1,39 +1,43 @@
 import connectDB from "@/app/db/connectDB";
-import { cookieExtraction } from "@/app/helpers/generateToken";
-import { sendEmail } from "@/app/helpers/sendMail";
 import User from "@/app/models/users";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(
+interface Params {
+  code: string;
+}
+
+export async function POST(
   request: NextRequest,
-  { params }: { params: number }
+  { params }: { params: Params }
 ) {
   try {
     await connectDB();
-    const decoded = await cookieExtraction();
-    if (!decoded) {
-      return NextResponse.json({ message: "Unauthorized!!" }, { status: 401 });
-    }
 
-    const user = await User.findById(decoded._id);
-    console.log(user);
-    if (!user) {
-      return NextResponse.json({ message: "user not found" }, { status: 400 });
-    }
-    user.isVerfied = false;
-    user.save();
+    const { code } = params;
 
-    await sendEmail({
-      email: user.email,
-      emailType: "RESET",
-      userId: user._id,
+    const user = await User.findOne({
+      forgotPasswordToken: code,
+      forgotPasswordTokenExpiry: { $gt: Date.now() },
     });
-    return NextResponse.json({ message: "reset Link sent!" }, { status: 200 });
-  } catch (error) {
+
+    if (!user) {
+      console.log("User not found or token expired");
+      return NextResponse.json({ message: "Invalid token" }, { status: 400 });
+    }
+
+    user.forgotPasswordToken = undefined;
+    user.forgotPasswordTokenExpiry = undefined;
+
+    await user.save();
+
     return NextResponse.json(
-      {
-        error,
-      },
+      { message: "Password reset Success!!" },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error verifying account:", error);
+    return NextResponse.json(
+      { message: error instanceof Error ? error.message : "Unknown error" },
       { status: 500 }
     );
   }
