@@ -1,9 +1,10 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Icons } from "@/components/icons/index";
 import { NavItem } from "@/app/helpers/types";
+import axios from "axios";
 
 export function DashboardNav({
   items,
@@ -13,7 +14,7 @@ export function DashboardNav({
   setOpen: (value: boolean) => void;
 }) {
   const path = usePathname();
-
+  const router = useRouter();
   if (!items?.length) {
     return null;
   }
@@ -22,6 +23,7 @@ export function DashboardNav({
     <nav className="grid items-start gap-2">
       {items.map((item, index) => {
         const Icon = Icons[item.icon || "arrowRight"];
+
         return (
           item.href && (
             <Link
@@ -29,6 +31,16 @@ export function DashboardNav({
               href={item.disabled ? "/" : item.href}
               onClick={() => {
                 if (setOpen) setOpen(false);
+                if (item.title === "Logout") {
+                  axios
+                    .get("/api/user/logout")
+                    .then(() => {
+                      router.push("/login");
+                    })
+                    .catch(() => {
+                      console.log("logout error");
+                    });
+                }
               }}
             >
               <span

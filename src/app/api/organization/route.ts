@@ -56,27 +56,34 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Get all organizations
 export async function GET() {
   try {
     await connectDB();
-
     const decoded = await cookieExtraction();
-
-    if (!decoded)
+    if (!decoded) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const _id = decoded._id as string;
-
-    const user = await User.findById(_id).populate("organizations");
-    if (!user)
+    const user = await User.findById(_id).select("organizations");
+    if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
 
-    return NextResponse.json(
-      { organizations: user.organizations },
-      { status: 200 }
-    );
+    const organizations = await Organization.find({
+      _id: { $in: user.organizations },
+    }).select("name description members admin");
+
+    if (!organizations || organizations.length === 0) {
+      return NextResponse.json(
+        { error: "No Organizations Found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ organizations }, { status: 200 });
   } catch (error) {
+    console.error("Error fetching organizations:", error);
     return NextResponse.json(
       { error: "Something went wrong" },
       { status: 500 }

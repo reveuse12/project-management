@@ -42,9 +42,21 @@ export interface Organization {
 }
 
 export interface Project {
-  id: string;
+  _id: string;
   name: string;
 }
+
+export interface Task {
+  _id?: string;
+  name?: string;
+  description?: string;
+  status?: "OPEN" | "IN_PROGRESS";
+}
+export interface Role {
+  _id?: string;
+  name?: string;
+}
+
 export interface AuthState {
   token: string;
   refreshToken: string;
@@ -58,13 +70,51 @@ export interface AuthState {
   setProjects: (projects: Project[]) => void;
 }
 
-export interface Configuration {
-  jobs: string[];
-  departments: string[];
-  employees: string[];
+export interface Organization {
+  _id: string | null;
+  name: string;
+  description?: string | null;
+  members?: User[];
+  projects?: Project[];
+  admin?: User | null;
 }
 
-export interface ConfigurationsState {
-  configurations: Configuration;
-  setConfigurations: (configurations: Configuration) => void;
+export interface OrganizationState {
+  organizations: Organization[];
+  setOrganizations: (organisations: Organization[]) => void;
+  addOrganization: (organization: Organization) => void;
+  updateOrganization: (organization: Organization) => void;
 }
+
+export const navItems: NavItem[] = [
+  {
+    title: "Dashboard",
+    href: "/dashboard",
+    icon: "dashboard",
+    label: "Dashboard",
+  },
+  {
+    title: "User profile",
+    href: "/dashboard/profile",
+    icon: "profile",
+    label: "profile",
+  },
+  {
+    title: "Organization",
+    href: "/dashboard/organization",
+    icon: "employee",
+    label: "employee",
+  },
+  {
+    title: "Projects",
+    href: "/dashboard/project",
+    icon: "kanban",
+    label: "kanban",
+  },
+  {
+    title: "Logout",
+    href: "/",
+    icon: "login",
+    label: "login",
+  },
+];

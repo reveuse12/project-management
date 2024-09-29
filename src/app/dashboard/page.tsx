@@ -90,7 +90,7 @@ export default function AdminDashboardPage() {
 
   return (
     <ScrollArea>
-      <div className="container h-screen mx-auto p-4 space-y-6">
+      <div className="container min-h-screen mx-auto p-4 space-y-6">
         <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

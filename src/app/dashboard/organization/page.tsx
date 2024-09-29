@@ -38,7 +38,32 @@ import {
   Plus,
   Pencil,
   Trash2,
+  ArrowUpRight,
 } from "lucide-react";
+
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { getOgranizations } from "@/app/actions/organization/organization";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import axios from "axios";
+import Link from "next/link";
+
+interface Organization {
+  _id?: string;
+  name?: string;
+  description?: string;
+  projects?: Array<{
+    _id?: string;
+    title?: string;
+    status?: string;
+    members?: Array<{
+      _id?: string;
+      email?: string;
+      name?: string;
+      role?: string;
+    }>;
+  }>;
+  admin?: Array<{ _id?: string; email?: string }>;
+}
 
 export default function OrganizationManagementPage() {
   const [organization, setOrganization] = useState({
@@ -77,6 +102,28 @@ export default function OrganizationManagementPage() {
     title: "",
     description: "",
     status: "not started",
+  });
+
+  const {
+    data: Organizations,
+    isFetching,
+    isError,
+  } = useQuery({
+    queryKey: ["organizations"],
+    queryFn: () => getOgranizations(),
+  });
+
+  const addOrganizationmutate = useMutation({
+    mutationFn: async (organization) => {
+      const res = await axios.post("/api/organization/", organization);
+      return res;
+    },
+    onSuccess: (data) => {
+      console.log("success", data);
+    },
+    onError: (error) => {
+      console.log("error", error);
+    },
   });
 
   const handleAddMember = () => {
@@ -119,13 +166,14 @@ export default function OrganizationManagementPage() {
     }
   };
 
-  const handleUpdateOrganization = () => {
-    // In a real app, this would make an API call to update the organization
+  const handleUpdateOrganization = (e: { preventDefault: () => void }) => {
+    e.preventDefault();
+    addOrganizationmutate.mutate();
     console.log("Organization updated:", organization);
   };
 
   return (
-    <div className="container mx-auto p-4">
+    <ScrollArea className="container mx-auto p-4">
       <h1 className="text-3xl font-bold mb-6">Organization Management</h1>
       <Tabs defaultValue="details" className="space-y-4">
         <TabsList>
@@ -143,7 +191,7 @@ export default function OrganizationManagementPage() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="details">
+        <TabsContent value="details" className="grid gap-4 md:grid-cols-2">
           <Card>
             <CardHeader>
               <CardTitle>Organization Details</CardTitle>
@@ -181,8 +229,51 @@ export default function OrganizationManagementPage() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button onClick={handleUpdateOrganization}>Save Changes</Button>
+              <Button onClick={handleUpdateOrganization}>
+                Add Organizations
+              </Button>
             </CardFooter>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Current Organizations</CardTitle>
+              <CardDescription>
+                All Organizations in the system.
+              </CardDescription>
+              <Button asChild size="sm" className="ml-auto gap-1">
+                <Link href="#">
+                  View All
+                  <ArrowUpRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Project Name</TableHead>
+                    <TableHead>Description</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {Organizations &&
+                    Organizations.organizations.map((project: Organization) => (
+                      <TableRow key={project._id}>
+                        <TableCell>{project.name}</TableCell>
+                        <TableCell>{project.description}</TableCell>
+                        <TableCell>
+                          <Button variant="ghost" size="icon">
+                            <Pencil className="h-4 w-4" />
+                            <span className="sr-only">Edit project</span>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                </TableBody>
+              </Table>
+            </CardContent>
           </Card>
         </TabsContent>
 
@@ -379,6 +470,6 @@ export default function OrganizationManagementPage() {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+    </ScrollArea>
   );
 }
