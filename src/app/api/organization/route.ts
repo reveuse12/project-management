@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     if (!decoded)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { name, description, project, members } = await request.json();
+    const { name, description, projects, members } = await request.json();
     if (!name)
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
 
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     const organization = await Organization.create({
       name,
       description,
-      project,
+      projects,
       members,
       admin: user._id,
       createdBy: user._id,
@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
+    console.log(error);
     return NextResponse.json(
       { error: "Something went wrong" },
       { status: 500 }

@@ -46,6 +46,15 @@ import { getOgranizations } from "@/app/actions/organization/organization";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import axios from "axios";
 import Link from "next/link";
+import Loading from "../loading";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface Organization {
   _id?: string;
@@ -85,7 +94,6 @@ export default function OrganizationManagementPage() {
         role: { _id: "2", name: "Member" },
       },
     ],
-    admin: { _id: "1", fullname: "John Doe" },
   });
 
   const [roles, setRoles] = useState([
@@ -104,19 +112,10 @@ export default function OrganizationManagementPage() {
     status: "not started",
   });
 
-  const {
-    data: Organizations,
-    isFetching,
-    isError,
-  } = useQuery({
-    queryKey: ["organizations"],
-    queryFn: () => getOgranizations(),
-  });
-
   const addOrganizationmutate = useMutation({
     mutationFn: async (organization) => {
-      const res = await axios.post("/api/organization/", organization);
-      return res;
+      const res = await axios.post("/api/organization", organization);
+      return res.data;
     },
     onSuccess: (data) => {
       console.log("success", data);
@@ -125,6 +124,22 @@ export default function OrganizationManagementPage() {
       console.log("error", error);
     },
   });
+
+  const {
+    data: Organizations,
+    isFetching,
+    isError,
+  } = useQuery({
+    queryKey: ["organizations"],
+    queryFn: () => getOgranizations(),
+  });
+  const handleUpdateOrganization = (e: { preventDefault: () => void }) => {
+    e.preventDefault();
+    addOrganizationmutate.mutate(organization);
+  };
+
+  if (isFetching) return <Loading />;
+  if (isError) return <h1>{isError}</h1>;
 
   const handleAddMember = () => {
     // In a real app, this would make an API call to add the member
@@ -164,12 +179,6 @@ export default function OrganizationManagementPage() {
       });
       setNewProject({ title: "", description: "", status: "not started" });
     }
-  };
-
-  const handleUpdateOrganization = (e: { preventDefault: () => void }) => {
-    e.preventDefault();
-    addOrganizationmutate.mutate();
-    console.log("Organization updated:", organization);
   };
 
   return (
@@ -225,7 +234,7 @@ export default function OrganizationManagementPage() {
               </div>
               <div className="space-y-2">
                 <Label>Admin</Label>
-                <Input value={organization.admin.fullname} disabled />
+                {/* <Input value={organization.admin.fullname} disabled /> */}
               </div>
             </CardContent>
             <CardFooter>
@@ -276,6 +285,19 @@ export default function OrganizationManagementPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <Dialog>
+          <DialogTrigger>Open</DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Are you absolutely sure?</DialogTitle>
+              <DialogDescription>
+                This action cannot be undone. This will permanently delete your
+                account and remove your data from our servers.
+              </DialogDescription>
+            </DialogHeader>
+          </DialogContent>
+        </Dialog>
 
         <TabsContent value="projects">
           <Card>

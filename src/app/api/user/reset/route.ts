@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from "next/server";
 export async function GET(request: NextRequest): Promise<NextResponse> {
   try {
     await connectDB();
+    console.log(request, "request-reset-api");
     const decoded = await cookieExtraction();
     if (!decoded) {
       return NextResponse.json({ message: "Unauthorized!!" }, { status: 401 });

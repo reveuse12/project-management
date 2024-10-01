@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   BarChart,
   Bar,
@@ -25,9 +24,11 @@ import {
   TrendingUp,
   ArrowUpRight,
   ArrowDownRight,
+  Loader,
 } from "lucide-react";
-import Link from "next/link";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useQuery } from "@tanstack/react-query";
+import { getUser } from "../actions/user/user";
 
 const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
 
@@ -88,65 +89,80 @@ export default function AdminDashboardPage() {
     { id: "4", fullname: "Alice Brown", email: "alice@example.com", tasks: 15 },
   ]);
 
+  const {
+    data: users,
+    isLoading: usersLoading,
+    error: usersError,
+  } = useQuery({
+    queryKey: ["users"],
+    queryFn: getUser,
+  });
+
+  console.log("users", users?.users.length);
+
+  if (usersLoading) return <Loader />;
+  if (usersError) return <p>Eeor</p>;
+
   return (
     <ScrollArea>
       <div className="container min-h-screen mx-auto p-4 space-y-6">
         <h1 className="text-3xl font-bold mb-6">Admin Dashboard</h1>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {[
-            {
-              title: "Organizations",
-              value: stats.organizations.total,
-              icon: Building2,
-              change: stats.organizations.change,
-            },
-            {
-              title: "Projects",
-              value: stats.projects.total,
-              icon: Briefcase,
-              change: stats.projects.change,
-            },
-            {
-              title: "Users",
-              value: stats.users.total,
-              icon: Users,
-              change: stats.users.change,
-            },
-            {
-              title: "Tasks",
-              value: stats.tasks.total,
-              icon: CheckSquare,
-              change: stats.tasks.change,
-            },
-          ].map((item) => (
-            <Card key={item.title}>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">
-                  {item.title}
-                </CardTitle>
-                <item.icon className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {item.value.toLocaleString()}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {item.change > 0 ? (
-                    <span className="text-green-600 flex items-center">
-                      <ArrowUpRight className="h-4 w-4 mr-1" />
-                      {item.change} increase
-                    </span>
-                  ) : (
-                    <span className="text-red-600 flex items-center">
-                      <ArrowDownRight className="h-4 w-4 mr-1" />
-                      {Math.abs(item.change)} decrease
-                    </span>
-                  )}
-                </p>
-              </CardContent>
-            </Card>
-          ))}
+          {users &&
+            [
+              {
+                title: "Organizations",
+                value: stats.organizations.total,
+                icon: Building2,
+                change: stats.organizations.change,
+              },
+              {
+                title: "Projects",
+                value: stats.projects.total,
+                icon: Briefcase,
+                change: stats.projects.change,
+              },
+              {
+                title: "Users",
+                value: users?.users.length,
+                icon: Users,
+                change: stats.users.change,
+              },
+              {
+                title: "Tasks",
+                value: stats.tasks.total,
+                icon: CheckSquare,
+                change: stats.tasks.change,
+              },
+            ].map((item) => (
+              <Card key={item.title}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">
+                    {item.title}
+                  </CardTitle>
+                  <item.icon className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {item.value.toLocaleString()}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {item.change > 0 ? (
+                      <span className="text-green-600 flex items-center">
+                        <ArrowUpRight className="h-4 w-4 mr-1" />
+                        {item.change} increase
+                      </span>
+                    ) : (
+                      <span className="text-red-600 flex items-center">
+                        <ArrowDownRight className="h-4 w-4 mr-1" />
+                        {Math.abs(item.change)} decrease
+                      </span>
+                    )}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
