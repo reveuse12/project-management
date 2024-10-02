@@ -44,6 +44,7 @@ export interface Organization {
 export interface Project {
   _id: string;
   name: string;
+  description?: string;
 }
 
 export interface Task {

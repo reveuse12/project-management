@@ -51,10 +51,13 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { getProjects } from "@/app/actions/project/project";
+import { getUser } from "@/app/actions/user/user";
 
 interface Organization {
   _id?: string;
@@ -72,10 +75,25 @@ interface Organization {
     }>;
   }>;
   admin?: Array<{ _id?: string; email?: string }>;
+  members?: Array<{ user: string; role?: string }>;
+}
+
+interface ProjectType {
+  _id?: string;
+  title?: string;
+  description?: string;
+  status?: string;
+  members?: Array<{ _id?: string; email?: string; name?: string }>;
+  admin?: Array<{ _id?: string; email?: string }>;
+}
+
+interface MemberType {
+  userId: string;
+  roleId?: string;
 }
 
 export default function OrganizationManagementPage() {
-  const [organization, setOrganization] = useState({
+  const [organization, setOrganization] = useState<Organization>({
     name: "Acme Inc.",
     description: "A leading technology company",
     projects: [
@@ -96,6 +114,12 @@ export default function OrganizationManagementPage() {
     ],
   });
 
+  const [currentProject, setCurrentProject] = useState<ProjectType>({
+    title: "",
+    description: "",
+    status: "not started",
+  });
+
   const [roles, setRoles] = useState([
     {
       _id: "1",
@@ -105,16 +129,48 @@ export default function OrganizationManagementPage() {
     { _id: "2", name: "Member", permissions: ["read", "write"] },
   ]);
 
-  const [newMember, setNewMember] = useState({ userId: "", roleId: "" });
-  const [newProject, setNewProject] = useState({
+  const [newMember, setNewMember] = useState<MemberType>({
+    userId: "",
+    roleId: "",
+  });
+
+  const [newProject, setNewProject] = useState<ProjectType>({
     title: "",
     description: "",
     status: "not started",
   });
 
-  const addOrganizationmutate = useMutation({
-    mutationFn: async (organization) => {
+  const [openDialog, setOpenDialog] = useState<boolean>(false);
+
+  const addOrganizationMutation = useMutation({
+    mutationFn: async (organization: Organization) => {
       const res = await axios.post("/api/organization", organization);
+      return res.data;
+    },
+    onSuccess: (data) => {
+      console.log("success", data);
+    },
+    onError: (error) => {
+      console.log("error", error);
+    },
+  });
+
+  const addProjectMutation = useMutation({
+    mutationFn: async (project: ProjectType) => {
+      const res = await axios.post("/api/project", project);
+      return res.data;
+    },
+    onSuccess: (data) => {
+      console.log("success", data);
+    },
+    onError: (error) => {
+      console.log("error", error);
+    },
+  });
+
+  const addMemberMutation = useMutation({
+    mutationFn: async (member: MemberType) => {
+      const res = await axios.post("/api/member", member);
       return res.data;
     },
     onSuccess: (data) => {
@@ -133,16 +189,34 @@ export default function OrganizationManagementPage() {
     queryKey: ["organizations"],
     queryFn: () => getOgranizations(),
   });
+
+  const {
+    data: Projects,
+    isFetching: ProjectsIsFetching,
+    isError: projectsIsError,
+  } = useQuery({
+    queryKey: ["projects"],
+    queryFn: () => getProjects(),
+  });
+
+  const {
+    data: Members,
+    isFetching: MembersIsFetching,
+    isError: MembersIsError,
+  } = useQuery({
+    queryKey: ["members"],
+    queryFn: () => getUser(),
+  });
+
   const handleUpdateOrganization = (e: { preventDefault: () => void }) => {
     e.preventDefault();
-    addOrganizationmutate.mutate(organization);
+    addOrganizationMutation.mutate(organization);
   };
 
-  if (isFetching) return <Loading />;
-  if (isError) return <h1>{isError}</h1>;
+  if (isFetching || ProjectsIsFetching) return <Loading />;
+  if (isError || projectsIsError) return <h1>Error fetching data</h1>;
 
   const handleAddMember = () => {
-    // In a real app, this would make an API call to add the member
     if (newMember.userId && newMember.roleId) {
       const user = {
         _id: newMember.userId,
@@ -154,9 +228,10 @@ export default function OrganizationManagementPage() {
         ...organization,
         members: [
           ...organization.members,
-          { _id: Date.now().toString(), user, role },
+          { _id: Date.now().toString(), user },
         ],
       });
+      addMemberMutation.mutate(newMember);
       setNewMember({ userId: "", roleId: "" });
     }
   };
@@ -179,6 +254,12 @@ export default function OrganizationManagementPage() {
       });
       setNewProject({ title: "", description: "", status: "not started" });
     }
+    addProjectMutation.mutate(newProject);
+  };
+
+  const handleEditClick = (project: ProjectType) => {
+    setCurrentProject(project);
+    setOpenDialog(true);
   };
 
   return (
@@ -273,7 +354,11 @@ export default function OrganizationManagementPage() {
                         <TableCell>{project.name}</TableCell>
                         <TableCell>{project.description}</TableCell>
                         <TableCell>
-                          <Button variant="ghost" size="icon">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEditClick(project)}
+                          >
                             <Pencil className="h-4 w-4" />
                             <span className="sr-only">Edit project</span>
                           </Button>
@@ -284,20 +369,48 @@ export default function OrganizationManagementPage() {
               </Table>
             </CardContent>
           </Card>
-        </TabsContent>
 
-        <Dialog>
-          <DialogTrigger>Open</DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Are you absolutely sure?</DialogTitle>
-              <DialogDescription>
-                This action cannot be undone. This will permanently delete your
-                account and remove your data from our servers.
-              </DialogDescription>
-            </DialogHeader>
-          </DialogContent>
-        </Dialog>
+          {/* Dialog Component */}
+          {currentProject && (
+            <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+              <DialogContent className="bg-white">
+                <DialogHeader>
+                  <DialogTitle>Edit Project: {currentProject.name}</DialogTitle>
+                </DialogHeader>
+                <form>
+                  <div>
+                    <label htmlFor="projectName">Project Name</label>
+                    <input
+                      id="projectName"
+                      defaultValue={currentProject.name}
+                      className="input-class"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="projectDescription">Description</label>
+                    <textarea
+                      id="projectDescription"
+                      defaultValue={currentProject.description}
+                      className="input-class"
+                    />
+                  </div>
+                </form>
+                <DialogFooter>
+                  <Button variant="ghost" onClick={() => setOpenDialog(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      setOpenDialog(false);
+                    }}
+                  >
+                    Save Changes
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
+        </TabsContent>
 
         <TabsContent value="projects">
           <Card>
@@ -365,7 +478,7 @@ export default function OrganizationManagementPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {organization.projects.map((project) => (
+                    {Projects.projects.map((project, index) => (
                       <TableRow key={project._id}>
                         <TableCell>{project.title}</TableCell>
                         <TableCell>
@@ -414,10 +527,11 @@ export default function OrganizationManagementPage() {
                       <SelectTrigger id="userId">
                         <SelectValue placeholder="Select user" />
                       </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="3">New User</SelectItem>
-                        {/* In a real app, this would be populated with actual users */}
-                      </SelectContent>
+                      {Members && (
+                        <SelectContent>
+                          <SelectItem value="3">New User</SelectItem>
+                        </SelectContent>
+                      )}
                     </Select>
                   </div>
                   <div>
