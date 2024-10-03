@@ -15,9 +15,11 @@ export async function POST(
 ) {
   try {
     const { roleId, organizationId } = params;
+
+    // Parse the request body to get the array of user IDs
     const { users } = await request.json();
 
-    // Validate inputs
+    // Validate request data
     if (
       !roleId ||
       !organizationId ||
@@ -27,13 +29,13 @@ export async function POST(
       return NextResponse.json({ error: "Invalid input" }, { status: 400 });
     }
 
-    // Get the logged-in user's info
+    // Extract and verify authentication from cookies
     const decoded = await cookieExtraction();
     if (!decoded || !decoded._id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Find the organization
+    // Check if the organization exists
     const organization = await Organization.findById(organizationId);
     if (!organization) {
       return NextResponse.json(
@@ -43,14 +45,24 @@ export async function POST(
     }
 
     // Update users' roles in their organizations array
-    const updateUserPromises = users.map(async (member) => {
+    const updateUserPromises = users.map(async (userId) => {
+      console.log(
+        "Updating user:",
+        userId,
+        "with organizationId:",
+        organizationId,
+        "and roleId:",
+        roleId
+      );
+
+      // Find and update each user
       return User.findByIdAndUpdate(
-        member.userId,
+        userId,
         {
           $addToSet: {
             organizations: {
-              organization: new mongoose.Types.ObjectId(organizationId),
-              role: new mongoose.Types.ObjectId(roleId),
+              organization: new mongoose.Types.ObjectId(organizationId), // Ensure this is correct in your schema
+              role: new mongoose.Types.ObjectId(roleId), // Ensure this is correct in your schema
             },
           },
         },
@@ -58,11 +70,12 @@ export async function POST(
       );
     });
 
+    // Execute all user update promises
     const updatedUsers = await Promise.all(updateUserPromises);
 
-    console.log("Updated users", updatedUsers);
+    // Log the updated users for debugging
+    console.log("Updated Users:", updatedUsers);
 
-    // Ensure updated users exist
     if (!updatedUsers || updatedUsers.length === 0) {
       return NextResponse.json(
         { error: "Users not found or updated" },
@@ -70,28 +83,7 @@ export async function POST(
       );
     }
 
-    // Update organization members with the new roles
-    const updateOrganization = await Organization.updateOne(
-      { _id: organizationId },
-      {
-        $addToSet: {
-          members: {
-            $each: users.map((member) => ({
-              user: new mongoose.Types.ObjectId(member.userId),
-              role: new mongoose.Types.ObjectId(roleId),
-            })),
-          },
-        },
-      }
-    );
-
-    if (!updateOrganization.modifiedCount) {
-      return NextResponse.json(
-        { error: "Failed to update organization members" },
-        { status: 500 }
-      );
-    }
-
+    // Return the updated users' IDs
     return NextResponse.json({
       success: true,
       message: "Roles assigned successfully",
