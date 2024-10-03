@@ -73,8 +73,8 @@ export async function GET(request: NextRequest) {
     if (!decoded) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const { organizationId } = await request.json();
-    console.log(organizationId);
+    // const { organizationId } = await request.json();
+    // console.log(organizationId);
 
     const projects = await Projects.find();
     return NextResponse.json({ projects }, { status: 200 });

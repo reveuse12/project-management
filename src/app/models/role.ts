@@ -4,7 +4,7 @@ const roleSchema = new mongoose.Schema({
   name: { type: String, required: true, unique: true },
   permissions: {
     type: [String],
-    enum: ["read", "write", "create", "update", "delete"],
+    enum: ["read", "write", "create", "update", "delete", "all"],
     default: "read",
   },
   description: { type: String, trim: true },

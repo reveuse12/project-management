@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Key, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -76,6 +76,11 @@ interface Organization {
   }>;
   admin?: Array<{ _id?: string; email?: string }>;
   members?: Array<{ user: string; role?: string }>;
+}
+
+interface Memberss {
+  id: string;
+  username: string;
 }
 
 interface ProjectType {
@@ -191,13 +196,15 @@ export default function OrganizationManagementPage() {
   });
 
   const {
-    data: Projects,
+    data: Projectss,
     isFetching: ProjectsIsFetching,
     isError: projectsIsError,
   } = useQuery({
     queryKey: ["projects"],
     queryFn: () => getProjects(),
   });
+
+  console.log(Projectss);
 
   const {
     data: Members,
@@ -478,28 +485,31 @@ export default function OrganizationManagementPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {Projects.projects.map((project, index) => (
-                      <TableRow key={project._id}>
-                        <TableCell>{project.title}</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              project.status === "completed"
-                                ? "default"
-                                : "secondary"
-                            }
-                          >
-                            {project.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Button variant="ghost" size="icon">
-                            <Pencil className="h-4 w-4" />
-                            <span className="sr-only">Edit project</span>
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                    {Projectss &&
+                      Projectss.projects.map(
+                        (project: ProjectType, _index: Key) => (
+                          <TableRow key={project._id}>
+                            <TableCell>{project.title}</TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={
+                                  project.status === "completed"
+                                    ? "default"
+                                    : "secondary"
+                                }
+                              >
+                                {project.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Button variant="ghost" size="icon">
+                                <Pencil className="h-4 w-4" />
+                                <span className="sr-only">Edit project</span>
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      )}
                   </TableBody>
                 </Table>
               </div>
@@ -527,13 +537,16 @@ export default function OrganizationManagementPage() {
                       <SelectTrigger id="userId">
                         <SelectValue placeholder="Select user" />
                       </SelectTrigger>
-                      {Members && (
-                        <SelectContent>
-                          <SelectItem value="3">New User</SelectItem>
-                        </SelectContent>
-                      )}
+                      <SelectContent>
+                        {Members?.users?.map((member: Memberss) => (
+                          <SelectItem key={member.id} value={member.id}>
+                            {member.username}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
                     </Select>
                   </div>
+
                   <div>
                     <Label htmlFor="roleId">Role</Label>
                     <Select
