@@ -85,6 +85,7 @@ export interface OrganizationState {
   setOrganizations: (organisations: Organization[]) => void;
   addOrganization: (organization: Organization) => void;
   updateOrganization: (organization: Organization) => void;
+  deleteOrganization: (organizationId: string) => void;
 }
 
 export const navItems: NavItem[] = [

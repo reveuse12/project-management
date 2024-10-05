@@ -42,7 +42,6 @@ export const useAuthStore = create<AuthState>()(
   )
 );
 
-// Organization Store (already implemented)
 const organizationStorage: PersistOptions<OrganizationState>["storage"] = {
   getItem: (name: string) => {
     const str = localStorage.getItem(name);
@@ -67,6 +66,10 @@ export const useOrganizationStore = create<OrganizationState>()(
           organizations: state.organizations.map((org) =>
             org._id === updatedOrg._id ? updatedOrg : org
           ),
+        })),
+      deleteOrganization: (orgId) =>
+        set((state) => ({
+          organizations: state.organizations.filter((org) => org._id !== orgId),
         })),
     }),
     {

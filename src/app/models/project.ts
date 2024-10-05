@@ -46,6 +46,11 @@ const projectsSchema = new mongoose.Schema(
     endDate: {
       type: Date,
     },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
   },
   { timestamps: true }
 );

@@ -1,5 +1,4 @@
 "use client";
-
 import { Key, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -39,6 +39,7 @@ import {
   Pencil,
   Trash2,
   ArrowUpRight,
+  Binary,
 } from "lucide-react";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -50,7 +51,6 @@ import Loading from "../loading";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -58,11 +58,13 @@ import {
 } from "@/components/ui/dialog";
 import { getProjects } from "@/app/actions/project/project";
 import { getUser } from "@/app/actions/user/user";
+import { useToast } from "@/hooks/use-toast";
+import { useOrganizationStore } from "@/app/store/store";
 
 interface Organization {
   _id?: string;
-  name?: string;
-  description?: string;
+  name: string;
+  description: string;
   projects?: Array<{
     _id?: string;
     title?: string;
@@ -74,7 +76,12 @@ interface Organization {
       role?: string;
     }>;
   }>;
-  admin?: Array<{ _id?: string; email?: string }>;
+  admin?: {
+    _id: string;
+    email?: string;
+    name?: string;
+    fullname: string | undefined;
+  };
   members?: Array<{ user: string; role?: string }>;
 }
 
@@ -88,6 +95,7 @@ interface ProjectType {
   title?: string;
   description?: string;
   status?: string;
+  organization?: string;
   members?: Array<{ _id?: string; email?: string; name?: string }>;
   admin?: Array<{ _id?: string; email?: string }>;
 }
@@ -98,93 +106,80 @@ interface MemberType {
 }
 
 export default function OrganizationManagementPage() {
+  const { toast } = useToast();
+  const {
+    setOrganizations,
+    addOrganization,
+    updateOrganization,
+    deleteOrganization,
+  } = useOrganizationStore();
   const [organization, setOrganization] = useState<Organization>({
-    name: "Acme Inc.",
-    description: "A leading technology company",
-    projects: [
-      { _id: "1", title: "Project Alpha", status: "in progress" },
-      { _id: "2", title: "Project Beta", status: "not started" },
-    ],
-    members: [
-      {
-        _id: "1",
-        user: { _id: "1", fullname: "John Doe", email: "john@example.com" },
-        role: { _id: "1", name: "Admin" },
-      },
-      {
-        _id: "2",
-        user: { _id: "2", fullname: "Jane Smith", email: "jane@example.com" },
-        role: { _id: "2", name: "Member" },
-      },
-    ],
-  });
-
-  const [currentProject, setCurrentProject] = useState<ProjectType>({
-    title: "",
+    name: "",
     description: "",
-    status: "not started",
   });
-
-  const [roles, setRoles] = useState([
-    {
-      _id: "1",
-      name: "Admin",
-      permissions: ["read", "write", "create", "update", "delete"],
-    },
-    { _id: "2", name: "Member", permissions: ["read", "write"] },
-  ]);
-
-  const [newMember, setNewMember] = useState<MemberType>({
-    userId: "",
-    roleId: "",
-  });
-
   const [newProject, setNewProject] = useState<ProjectType>({
     title: "",
     description: "",
     status: "not started",
+    organization: "",
   });
 
-  const [openDialog, setOpenDialog] = useState<boolean>(false);
+  // const [currentProject, setCurrentProject] = useState<ProjectType>({
+  //   title: "",
+  //   description: "",
+  //   status: "not started",
+  // });
+
+  const handleEditClick = (organization: Organization) => {
+    setOrganization(organization);
+  };
+
+  const handleMutationSuccess = (
+    message: string,
+    updatedData: Organization
+  ) => {
+    toast({ title: message });
+    setOrganization({ name: "", description: "" });
+  };
 
   const addOrganizationMutation = useMutation({
-    mutationFn: async (organization: Organization) => {
-      const res = await axios.post("/api/organization", organization);
-      return res.data;
-    },
+    mutationFn: (org: Organization) =>
+      axios.post("/api/organization", org).then((res) => res.data),
     onSuccess: (data) => {
-      console.log("success", data);
+      addOrganization(data);
+      handleMutationSuccess("New Organization Added", data);
     },
-    onError: (error) => {
-      console.log("error", error);
-    },
+    onError: () => toast({ title: "Error Adding Organization" }),
   });
 
-  const addProjectMutation = useMutation({
-    mutationFn: async (project: ProjectType) => {
-      const res = await axios.post("/api/project", project);
-      return res.data;
-    },
+  const updateOrganizationMutation = useMutation({
+    mutationFn: (org: Organization) =>
+      axios.put(`/api/organization/${org._id}`, org).then((res) => res.data),
     onSuccess: (data) => {
-      console.log("success", data);
+      updateOrganization(data);
+      handleMutationSuccess("Organization Updated", data);
     },
-    onError: (error) => {
-      console.log("error", error);
-    },
+    onError: () => toast({ title: "Error Updating Organization" }),
   });
 
-  const addMemberMutation = useMutation({
-    mutationFn: async (member: MemberType) => {
-      const res = await axios.post("/api/member", member);
-      return res.data;
-    },
+  const deleteOrganizationMutation = useMutation({
+    mutationFn: (orgId: string) =>
+      axios.delete(`/api/organization/${orgId}`).then((res) => res.data),
     onSuccess: (data) => {
-      console.log("success", data);
+      deleteOrganization(data._id as string);
+      toast({ title: "Organization Deleted" });
     },
-    onError: (error) => {
-      console.log("error", error);
-    },
+    onError: () => toast({ title: "Error Deleting Organization" }),
   });
+
+  const handleUpdateOrganization = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (organization._id) {
+      updateOrganizationMutation.mutate(organization);
+    } else {
+      addOrganizationMutation.mutate(organization);
+    }
+  };
 
   const {
     data: Organizations,
@@ -204,70 +199,102 @@ export default function OrganizationManagementPage() {
     queryFn: () => getProjects(),
   });
 
-  console.log(Projectss);
-
-  const {
-    data: Members,
-    isFetching: MembersIsFetching,
-    isError: MembersIsError,
-  } = useQuery({
-    queryKey: ["members"],
-    queryFn: () => getUser(),
-  });
-
-  const handleUpdateOrganization = (e: { preventDefault: () => void }) => {
-    e.preventDefault();
-    addOrganizationMutation.mutate(organization);
-  };
-
-  if (isFetching || ProjectsIsFetching) return <Loading />;
-  if (isError || projectsIsError) return <h1>Error fetching data</h1>;
-
-  const handleAddMember = () => {
-    if (newMember.userId && newMember.roleId) {
-      const user = {
-        _id: newMember.userId,
-        fullname: "New User",
-        email: "newuser@example.com",
-      };
-      const role = roles.find((r) => r._id === newMember.roleId);
-      setOrganization({
-        ...organization,
-        members: [
-          ...organization.members,
-          { _id: Date.now().toString(), user },
-        ],
+  const addProjectMutation = useMutation({
+    mutationFn: async (project: ProjectType) => {
+      const res = await axios.post(
+        `/api/organization/${project.organization}/project`,
+        project
+      );
+      return res.data;
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "New Project Added",
       });
-      addMemberMutation.mutate(newMember);
-      setNewMember({ userId: "", roleId: "" });
-    }
-  };
-
-  const handleRemoveMember = (memberId: string) => {
-    setOrganization({
-      ...organization,
-      members: organization.members.filter((m) => m._id !== memberId),
-    });
-  };
+    },
+    onError: (error) => {
+      toast({
+        title: "Error Adding Project",
+      });
+    },
+  });
 
   const handleAddProject = () => {
     if (newProject.title && newProject.description) {
-      setOrganization({
-        ...organization,
-        projects: [
-          ...organization.projects,
-          { _id: Date.now().toString(), ...newProject },
-        ],
-      });
       setNewProject({ title: "", description: "", status: "not started" });
     }
     addProjectMutation.mutate(newProject);
   };
 
-  const handleEditClick = (project: ProjectType) => {
-    setCurrentProject(project);
-    setOpenDialog(true);
-  };
+  if (isFetching) return <Loading />;
+  if (isError) return <h1>Error fetching data</h1>;
+
+  // const addMemberMutation = useMutation({
+  //   mutationFn: async (member: MemberType) => {
+  //     const res = await axios.post("/api/member", member);
+  //     return res.data;
+  //   },
+  //   onSuccess: (data) => {
+  //     toast({
+  //       title: "New Member Added",
+  //     });
+  //   },
+  //   onError: (error) => {
+  //     toast({
+  //       title: "Error Adding Member",
+  //     });
+  //   },
+  // });
+
+  // const {
+  //   data: Members,
+  //   isFetching: MembersIsFetching,
+  //   isError: MembersIsError,
+  // } = useQuery({
+  //   queryKey: ["members"],
+  //   queryFn: () => getUser(),
+  // });
+
+  // const handleAddMember = () => {
+  //   if (newMember.userId && newMember.roleId) {
+  //     const user = {
+  //       _id: newMember.userId,
+  //       fullname: "New User",
+  //       email: "newuser@example.com",
+  //     };
+  //     const role = roles.find((r) => r._id === newMember.roleId);
+  //     setOrganization({
+  //       ...organization,
+  //       members: [
+  //         ...organization.members,
+  //         { _id: Date.now().toString(), user },
+  //       ],
+  //     });
+  //     addMemberMutation.mutate(newMember);
+  //     setNewMember({ userId: "", roleId: "" });
+  //   }
+  // };
+
+  // const handleRemoveMember = (memberId: string) => {
+  //   setOrganization({
+  //     ...organization,
+  //     members: organization.members.filter((m) => m._id !== memberId),
+  //   });
+  // };
+
+  // const [roles, setRoles] = useState([
+  //   {
+  //     _id: "1",
+  //     name: "Admin",
+  //     permissions: ["read", "write", "create", "update", "delete"],
+  //   },
+  //   { _id: "2", name: "Member", permissions: ["read", "write"] },
+  // ]);
+
+  // const [newMember, setNewMember] = useState<MemberType>({
+  //   userId: "",
+  //   roleId: "",
+  // });
 
   return (
     <ScrollArea className="container mx-auto p-4">
@@ -320,14 +347,16 @@ export default function OrganizationManagementPage() {
                   }
                 />
               </div>
-              <div className="space-y-2">
-                <Label>Admin</Label>
-                {/* <Input value={organization.admin.fullname} disabled /> */}
-              </div>
             </CardContent>
             <CardFooter>
               <Button onClick={handleUpdateOrganization}>
-                Add Organizations
+                {organization._id
+                  ? updateOrganizationMutation.isPending
+                    ? "Updating..."
+                    : "Update Organization"
+                  : addOrganizationMutation.isPending
+                  ? "Adding..."
+                  : "Add Organization"}
               </Button>
             </CardFooter>
           </Card>
@@ -349,8 +378,9 @@ export default function OrganizationManagementPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Project Name</TableHead>
+                    <TableHead>Organization Name</TableHead>
                     <TableHead>Description</TableHead>
+                    <TableHead>Admin</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -360,6 +390,7 @@ export default function OrganizationManagementPage() {
                       <TableRow key={project._id}>
                         <TableCell>{project.name}</TableCell>
                         <TableCell>{project.description}</TableCell>
+                        <TableCell>{project.admin?.fullname}</TableCell>
                         <TableCell>
                           <Button
                             variant="ghost"
@@ -369,6 +400,19 @@ export default function OrganizationManagementPage() {
                             <Pencil className="h-4 w-4" />
                             <span className="sr-only">Edit project</span>
                           </Button>
+
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() =>
+                              deleteOrganizationMutation.mutate(
+                                project._id as string
+                              )
+                            }
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Delete project</span>
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -376,47 +420,6 @@ export default function OrganizationManagementPage() {
               </Table>
             </CardContent>
           </Card>
-
-          {/* Dialog Component */}
-          {currentProject && (
-            <Dialog open={openDialog} onOpenChange={setOpenDialog}>
-              <DialogContent className="bg-white">
-                <DialogHeader>
-                  <DialogTitle>Edit Project: {currentProject.name}</DialogTitle>
-                </DialogHeader>
-                <form>
-                  <div>
-                    <label htmlFor="projectName">Project Name</label>
-                    <input
-                      id="projectName"
-                      defaultValue={currentProject.name}
-                      className="input-class"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="projectDescription">Description</label>
-                    <textarea
-                      id="projectDescription"
-                      defaultValue={currentProject.description}
-                      className="input-class"
-                    />
-                  </div>
-                </form>
-                <DialogFooter>
-                  <Button variant="ghost" onClick={() => setOpenDialog(false)}>
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      setOpenDialog(false);
-                    }}
-                  >
-                    Save Changes
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          )}
         </TabsContent>
 
         <TabsContent value="projects">
@@ -427,7 +430,32 @@ export default function OrganizationManagementPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div>
+                    <Label htmlFor="organization">Organization</Label>
+                    <Select
+                      value={newProject.organization}
+                      onValueChange={(value) =>
+                        setNewProject({ ...newProject, organization: value })
+                      }
+                    >
+                      <SelectTrigger id="organization">
+                        <SelectValue placeholder="Select Organization" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Organizations.organizations.map(
+                          (organization: Organization) => (
+                            <SelectItem
+                              key={organization._id}
+                              value={organization._id}
+                            >
+                              {organization.name}
+                            </SelectItem>
+                          )
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
                   <div>
                     <Label htmlFor="projectTitle">Project Title</Label>
                     <Input
@@ -517,7 +545,7 @@ export default function OrganizationManagementPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="members">
+        {/* <TabsContent value="members">
           <Card>
             <CardHeader>
               <CardTitle>Members</CardTitle>
@@ -617,7 +645,7 @@ export default function OrganizationManagementPage() {
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
+        </TabsContent> */}
       </Tabs>
     </ScrollArea>
   );
