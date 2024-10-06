@@ -39,7 +39,22 @@ export async function POST(request: NextRequest) {
       { message: "Role created successfully." },
       { status: 200 }
     );
-  } catch (error: unknown) {
-    return NextResponse.json({ error: error }, { status: 500 });
+  } catch (error) {
+    return NextResponse.json({ error }, { status: 500 });
+  }
+}
+
+export async function GET() {
+  try {
+    await connectDB();
+    const decoded = await cookieExtraction();
+    if (!decoded) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const roles = await Role.find().sort("name");
+    return NextResponse.json(roles, { status: 200 });
+  } catch (error) {
+    return NextResponse.json({ error }, { status: 500 });
   }
 }

@@ -1,10 +1,12 @@
 import connectDB from "@/app/db/connectDB";
 import { cookieExtraction } from "@/app/helpers/generateToken";
+import Organization from "@/app/models/organization";
 import Projects from "@/app/models/project";
 import { NextRequest, NextResponse } from "next/server";
 
 type Params = {
   projectId: string;
+  organizationId: string;
 };
 
 export async function DELETE(
@@ -58,11 +60,11 @@ export async function PUT(
     if (!decoded) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const { projectId } = params;
+    const { projectId, organizationId } = params;
 
-    const { name, description, status, members, tasks } = await request.json();
+    const { title, description, status, members, tasks } = await request.json();
 
-    if (!name || !description || !projectId) {
+    if (!title || !description || !projectId || !organizationId) {
       return NextResponse.json(
         {
           error:
@@ -72,15 +74,19 @@ export async function PUT(
       );
     }
 
-    // Find the project by ID
-    const project = await Projects.findById(projectId);
-
-    if (!project) {
-      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+    // find the organization and check if the project exists in the organization then update the project  otherwise return error
+    const organization = await Organization.findById(organizationId);
+    if (!organization) {
+      return NextResponse.json(
+        { error: "Organization not found" },
+        { status: 404 }
+      );
     }
 
+    const project = await Projects.findOne({ _id: projectId });
+
     // Update the project fields
-    project.title = name;
+    project.title = title;
     project.description = description;
     project.updatedAt = Date.now();
     project.status = status || project.status;
