@@ -54,8 +54,8 @@ export interface Task {
   status?: "OPEN" | "IN_PROGRESS";
 }
 export interface Role {
-  _id?: string;
-  name?: string;
+  _id: string;
+  name: string;
 }
 
 export interface AuthState {

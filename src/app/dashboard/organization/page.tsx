@@ -39,7 +39,6 @@ import {
   Pencil,
   Trash2,
   ArrowUpRight,
-  Binary,
 } from "lucide-react";
 
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -48,22 +47,19 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import axios from "axios";
 import Link from "next/link";
 import Loading from "../loading";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { getProjects } from "@/app/actions/project/project";
 import { getUser } from "@/app/actions/user/user";
 import { useToast } from "@/hooks/use-toast";
-import { useOrganizationStore } from "@/app/store/store";
+import {
+  useOrganizationStore,
+  useProjectStore,
+  useRoleStore,
+} from "@/app/store/store";
 import { getRoles } from "@/app/actions/roles/roles";
+import { Role } from "@/app/helpers/types";
 
 interface Organization {
-  _id?: string;
+  _id: string;
   name: string;
   description: string;
   projects?: Array<{
@@ -81,22 +77,24 @@ interface Organization {
     _id: string;
     email?: string;
     name?: string;
-    fullname: string | undefined;
+    fullname?: string;
   };
-  members?: Array<{ user: string; role?: string }>;
+  members?: Array<{ user: { _id: string; fullname: string }; role?: string }>;
 }
 
 interface Memberss {
-  id: string;
+  _id: string;
   username: string;
+  fullname: string;
+  email: string;
 }
 
 interface ProjectType {
-  _id?: string;
+  _id: string;
   title?: string;
   description?: string;
   status?: string;
-  organization?: {
+  organization: {
     _id?: string;
     name: string;
   };
@@ -117,25 +115,23 @@ export default function OrganizationManagementPage() {
     updateOrganization,
     deleteOrganization,
   } = useOrganizationStore();
+  const { setProjects, updateProject, deleteProject } = useProjectStore();
+  const { setRoles, addRole, updateRole, deleteRole } = useRoleStore();
+
   const [organization, setOrganization] = useState<Organization>({
+    _id: "",
     name: "",
     description: "",
+    members: [],
   });
+
   const [newProject, setNewProject] = useState<ProjectType>({
+    _id: "",
     title: "",
     description: "",
     status: "not started",
-    organization: "",
+    organization: { _id: "", name: "" },
   });
-
-  const [roles, setRoles] = useState([
-    {
-      _id: "1",
-      name: "Admin",
-      permissions: ["read", "write", "create", "update", "delete"],
-    },
-    { _id: "2", name: "Member", permissions: ["read", "write"] },
-  ]);
 
   const [newMember, setNewMember] = useState<MemberType>({
     userId: "",
@@ -151,7 +147,7 @@ export default function OrganizationManagementPage() {
     updatedData: Organization
   ) => {
     toast({ title: message });
-    setOrganization({ name: "", description: "" });
+    setOrganization({ _id: "", name: "", description: "", members: [] }); // Clear organization with safe default
   };
 
   const addOrganizationMutation = useMutation({
@@ -199,7 +195,7 @@ export default function OrganizationManagementPage() {
     isError,
   } = useQuery({
     queryKey: ["organizations"],
-    queryFn: () => getOgranizations(),
+    queryFn: getOgranizations,
   });
 
   const {
@@ -208,23 +204,41 @@ export default function OrganizationManagementPage() {
     isError: projectsIsError,
   } = useQuery({
     queryKey: ["projects"],
-    queryFn: () => getProjects(),
+    queryFn: getProjects,
+  });
+
+  const {
+    data: Members,
+    isFetching: MembersIsFetching,
+    isError: MembersIsError,
+  } = useQuery({
+    queryKey: ["members"],
+    queryFn: getUser,
+  });
+
+  const {
+    data: Roles,
+    isFetching: RolesIsFetching,
+    isError: RolesIsError,
+  } = useQuery({
+    queryKey: ["roles"],
+    queryFn: getRoles,
   });
 
   const addProjectMutation = useMutation({
     mutationFn: async (project: ProjectType) => {
       const res = await axios.post(
-        `/api/organization/${project.organization}/project`,
+        `/api/organization/${project.organization?._id}/project`,
         project
       );
       return res.data;
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast({
         title: "New Project Added",
       });
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: "Error Adding Project",
       });
@@ -244,7 +258,7 @@ export default function OrganizationManagementPage() {
         title: "Project Updated",
       });
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: "Error Updating Project",
       });
@@ -256,14 +270,14 @@ export default function OrganizationManagementPage() {
       const res = await axios.delete(
         `/api/organization/${project.organization?._id}/project/${project._id}`
       );
-      return res;
+      return res.data;
     },
     onSuccess: () => {
       toast({
         title: "Project Deleted",
       });
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: "Error Deleting Project",
       });
@@ -272,7 +286,6 @@ export default function OrganizationManagementPage() {
 
   const handleUpdateProject = (e: React.FormEvent) => {
     e.preventDefault();
-
     if (newProject._id) {
       updateProjectMutation.mutate(newProject);
     } else {
@@ -289,36 +302,17 @@ export default function OrganizationManagementPage() {
       const res = await axios.post("/api/member", member);
       return res.data;
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       toast({
         title: "New Member Added",
       });
     },
-    onError: (error) => {
+    onError: () => {
       toast({
         title: "Error Adding Member",
       });
     },
   });
-
-  const {
-    data: Members,
-    isFetching: MembersIsFetching,
-    isError: MembersIsError,
-  } = useQuery({
-    queryKey: ["members"],
-    queryFn: () => getUser(),
-  });
-
-  const {
-    data: Roles,
-    isFetching: RolesIsFetching,
-    isError: RolesIsError,
-  } = useQuery({
-    queryKey: ["roles"],
-    queryFn: () => getRoles(),
-  });
-  console.log(Roles, "99999999");
 
   const handleAddMember = () => {
     if (newMember.userId && newMember.roleId) {
@@ -330,10 +324,7 @@ export default function OrganizationManagementPage() {
       const role = roles.find((r) => r._id === newMember.roleId);
       setOrganization({
         ...organization,
-        members: [
-          ...organization.members,
-          { _id: Date.now().toString(), user },
-        ],
+        members: [...organization.members!, { user, role: role?.name }],
       });
       addMemberMutation.mutate(newMember);
       setNewMember({ userId: "", roleId: "" });
@@ -343,11 +334,22 @@ export default function OrganizationManagementPage() {
   const handleRemoveMember = (memberId: string) => {
     setOrganization({
       ...organization,
-      members: organization.members.filter((m) => m._id !== memberId),
+      members: organization.members!.filter((m) => m.user._id !== memberId),
     });
   };
-  if (isFetching) return <Loading />;
-  if (isError) return <h1>Error fetching data</h1>;
+
+  if (
+    RolesIsFetching ||
+    MembersIsFetching ||
+    isFetching ||
+    ProjectsIsFetching
+  ) {
+    return <Loading />;
+  }
+
+  if (isError || projectsIsError || RolesIsError || MembersIsError) {
+    return <div>Error fetching data!</div>;
+  }
 
   return (
     <ScrollArea className="container mx-auto p-4">
@@ -661,7 +663,7 @@ export default function OrganizationManagementPage() {
                       </SelectTrigger>
                       <SelectContent>
                         {Members?.users?.map((member: Memberss) => (
-                          <SelectItem key={member.id} value={member.id}>
+                          <SelectItem key={member._id} value={member._id}>
                             {member.username}
                           </SelectItem>
                         ))}
@@ -681,7 +683,7 @@ export default function OrganizationManagementPage() {
                         <SelectValue placeholder="Select role" />
                       </SelectTrigger>
                       <SelectContent>
-                        {Roles.map((role) => (
+                        {Roles.map((role: Role) => (
                           <SelectItem key={role._id} value={role._id}>
                             {role.name}
                           </SelectItem>
@@ -698,7 +700,7 @@ export default function OrganizationManagementPage() {
                 </div>
               </div>
               <div className="mt-6 space-y-4">
-                {Members.users.map((member) => (
+                {Members.users.map((member: Memberss, index: number) => (
                   <div
                     key={member._id}
                     className="flex items-center justify-between p-2 border rounded"
