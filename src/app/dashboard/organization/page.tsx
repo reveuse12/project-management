@@ -104,7 +104,8 @@ interface ProjectType {
 
 interface MemberType {
   userId: string;
-  roleId?: string;
+  roleId: string;
+  organizationId: string;
 }
 
 export default function OrganizationManagementPage() {
@@ -136,6 +137,7 @@ export default function OrganizationManagementPage() {
   const [newMember, setNewMember] = useState<MemberType>({
     userId: "",
     roleId: "",
+    organizationId: "",
   });
 
   const handleEditClick = (organization: Organization) => {
@@ -299,7 +301,9 @@ export default function OrganizationManagementPage() {
 
   const addMemberMutation = useMutation({
     mutationFn: async (member: MemberType) => {
-      const res = await axios.post("/api/member", member);
+      const res = await axios.post(
+        `/api/organization/${member.organizationId}/user/${member.userId}/${member.roleId}`
+      );
       return res.data;
     },
     onSuccess: () => {
@@ -314,21 +318,8 @@ export default function OrganizationManagementPage() {
     },
   });
 
-  const handleAddMember = () => {
-    if (newMember.userId && newMember.roleId) {
-      const user = {
-        _id: newMember.userId,
-        fullname: "New User",
-        email: "newuser@example.com",
-      };
-      const role = roles.find((r) => r._id === newMember.roleId);
-      setOrganization({
-        ...organization,
-        members: [...organization.members!, { user, role: role?.name }],
-      });
-      addMemberMutation.mutate(newMember);
-      setNewMember({ userId: "", roleId: "" });
-    }
+  const handleUpdateMember = () => {
+    addMemberMutation.mutate(newMember);
   };
 
   const handleRemoveMember = (memberId: string) => {
@@ -619,18 +610,18 @@ export default function OrganizationManagementPage() {
         <TabsContent value="members">
           <Card>
             <CardHeader>
-              <CardTitle>Members</CardTitle>
+              <CardTitle>Assign Members to Organization</CardTitle>
               <CardDescription>Manage organization members</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <Label htmlFor="roleId">Organization</Label>
+                    <Label htmlFor="organizationId">Organization</Label>
                     <Select
-                      value={newMember.roleId}
+                      value={newMember.organizationId}
                       onValueChange={(value) =>
-                        setNewMember({ ...newMember, roleId: value })
+                        setNewMember({ ...newMember, organizationId: value })
                       }
                     >
                       <SelectTrigger id="organizationId">
@@ -692,7 +683,7 @@ export default function OrganizationManagementPage() {
                     </Select>
                   </div>
                   <div className="flex items-end">
-                    <Button onClick={handleAddMember}>
+                    <Button onClick={handleUpdateMember}>
                       <Plus className="mr-2 h-4 w-4" />
                       Add Member
                     </Button>
@@ -726,7 +717,7 @@ export default function OrganizationManagementPage() {
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      {/* <Badge variant="outline">{member.role.name}</Badge> */}
+                      {/* <Badge variant="outline">{member}</Badge> */}
                       <Button
                         variant="ghost"
                         size="icon"
