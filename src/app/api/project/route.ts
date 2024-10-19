@@ -1,6 +1,5 @@
 import connectDB from "@/app/db/connectDB";
 import { cookieExtraction } from "@/app/helpers/generateToken";
-import Organization from "@/app/models/organization";
 import Projects from "@/app/models/project";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -9,6 +8,7 @@ export async function GET(request: NextRequest) {
   try {
     await connectDB();
     const decoded = await cookieExtraction();
+    console.log(request.json(), "in project get");
     if (!decoded) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

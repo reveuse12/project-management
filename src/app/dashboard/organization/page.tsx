@@ -52,6 +52,7 @@ import {
   useOrganizationStore,
   useProjectStore,
   useRoleStore,
+  useUsersStore,
 } from "@/app/store/store";
 import { getRoles } from "@/app/actions/roles/roles";
 import { Role } from "@/app/helpers/types";
@@ -94,7 +95,7 @@ interface ProjectType {
   status: string;
   organization: {
     _id: string;
-    name: string;
+    name: string | null;
   };
   members?: Array<{ _id?: string; email?: string; name?: string }>;
   admin?: Array<{ _id?: string; email?: string }>;
@@ -115,7 +116,8 @@ export default function OrganizationManagementPage() {
     deleteOrganization,
   } = useOrganizationStore();
   const { setProjects, updateProject, deleteProject } = useProjectStore();
-  const { setRoles, addRole, updateRole, deleteRole } = useRoleStore();
+  const { setUsers, addUser, removeUser } = useUsersStore();
+  const { setRoles } = useRoleStore();
 
   const [organization, setOrganization] = useState<Organization>({
     _id: "",
@@ -192,7 +194,11 @@ export default function OrganizationManagementPage() {
     isError,
   } = useQuery({
     queryKey: ["organizations"],
-    queryFn: getOgranizations,
+    queryFn: async () => {
+      const data = await getOgranizations();
+      setOrganizations(data); // Handle success logic here
+      return data;
+    },
   });
   const {
     data: Projectss,
@@ -200,16 +206,29 @@ export default function OrganizationManagementPage() {
     isError: projectsIsError,
   } = useQuery({
     queryKey: ["projects"],
-    queryFn: getProjects,
+    queryFn: async () => {
+      const data = await getProjects();
+      setProjects(data);
+      return data;
+    },
   });
 
   const {
-    data: Members,
+    data: Members = [],
     isFetching: MembersIsFetching,
     isError: MembersIsError,
-  } = useQuery({
+  } = useQuery<Memberss[]>({
     queryKey: ["members"],
-    queryFn: getUser,
+    queryFn: async () => {
+      const users = await getUser();
+      // Map User[] to Memberss[]
+      return users.map((user: Memberss) => ({
+        _id: user._id,
+        username: user.username, // Assuming `name` from User is the same as `username` in Memberss
+        fullname: user.fullname, // Assuming `name` from User is used as `fullname` in Memberss
+        email: user.email,
+      }));
+    },
   });
 
   const {
@@ -218,7 +237,11 @@ export default function OrganizationManagementPage() {
     isError: RolesIsError,
   } = useQuery({
     queryKey: ["roles"],
-    queryFn: getRoles,
+    queryFn: async () => {
+      const data = await getRoles();
+      setRoles(data); // Handle success logic here
+      return data; // Handle success logic here
+    },
   });
 
   const addProjectMutation = useMutation({
@@ -304,6 +327,7 @@ export default function OrganizationManagementPage() {
       return res.data;
     },
     onSuccess: (data) => {
+      addUser(data);
       toast({
         title: "New Member Added",
       });
@@ -320,6 +344,7 @@ export default function OrganizationManagementPage() {
       const res = await axios.delete(
         `/api/organization/${member.organizationId}/user/${member.userId}/${member.roleId}`
       );
+      removeUser(member.userId);
       return res.data;
     },
     onError: () => {
@@ -493,9 +518,12 @@ export default function OrganizationManagementPage() {
                   <div>
                     <Label htmlFor="organization">Organization</Label>
                     <Select
-                      value={newProject.organization._id as string}
+                      value={newProject.organization._id}
                       onValueChange={(value) =>
-                        setNewProject({ ...newProject, organization: value })
+                        setNewProject({
+                          ...newProject,
+                          organization: { _id: value, name: null },
+                        })
                       }
                     >
                       <SelectTrigger id="organization">
@@ -666,7 +694,7 @@ export default function OrganizationManagementPage() {
                         <SelectValue placeholder="Select user" />
                       </SelectTrigger>
                       <SelectContent>
-                        {Members?.users?.map((member: Memberss) => (
+                        {Members?.map((member: Memberss) => (
                           <SelectItem key={member._id} value={member._id}>
                             {member.username}
                           </SelectItem>
@@ -704,7 +732,7 @@ export default function OrganizationManagementPage() {
                 </div>
               </div>
               <div className="mt-6 space-y-4">
-                {Members.users.map((member: Memberss, index: number) => (
+                {Members?.map((member: Memberss) => (
                   <div
                     key={member._id}
                     className="flex items-center justify-between p-2 border rounded"
@@ -716,10 +744,10 @@ export default function OrganizationManagementPage() {
                           alt={member.fullname}
                         />
                         <AvatarFallback>
-                          {member.fullname
+                          {/* {member.fullname
                             .split(" ")
                             .map((n) => n[0])
-                            .join("")}
+                            .join("")} */}
                         </AvatarFallback>
                       </Avatar>
                       <div>

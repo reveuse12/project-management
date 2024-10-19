@@ -10,7 +10,6 @@ import {
   Role,
 } from "../helpers/types";
 
-// Auth Store (already implemented)
 const storage: PersistOptions<AuthState, AuthState>["storage"] = {
   getItem: (name: string) => {
     const str = localStorage.getItem(name);
@@ -211,4 +210,42 @@ export const useRoleStore = create<RoleState>()(
       storage: roleStorage,
     }
   )
+);
+
+// users stores
+interface UsersState {
+  users: User[];
+  setUsers: (users: User[]) => void; // Accepts an array of users
+  addUser: (user: User) => void;
+  removeUser: (userId: string) => void; // Takes userId as string
+}
+
+const userStorage: PersistOptions<UsersState>["storage"] = {
+  getItem: (name: string) => {
+    const str = localStorage.getItem(name);
+    return str ? JSON.parse(str) : null;
+  },
+  setItem: (name: string, value: StorageValue<UsersState>) =>
+    localStorage.setItem(name, JSON.stringify(value)),
+  removeItem: (name: string) => localStorage.removeItem(name),
+};
+
+export const useUsersStore = create<UsersState>()(
+  persist(
+    (set) => ({
+      users: [],
+      setUsers: (users: User[]) => set(() => ({ users })), // Sets the entire array
+      addUser: (user) => set((state) => ({ users: [...state.users, user] })),
+      removeUser: (userId: string) =>
+        set((state) => ({
+          users: state.users.filter((u) => u._id !== userId),
+        })),
+    }),
+    {
+      name: "users",
+      storage: userStorage,
+    }
+  )
+  //... other hooks and methods
+  //...
 );

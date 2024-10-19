@@ -98,7 +98,7 @@ export default function AdminDashboardPage() {
     queryFn: getUser,
   });
 
-  console.log("users", users?.users.length);
+  console.log("users", users?.length);
 
   if (usersLoading) return <Loader />;
   if (usersError) return <p>Eeor</p>;
@@ -125,7 +125,7 @@ export default function AdminDashboardPage() {
               },
               {
                 title: "Users",
-                value: users?.users.length,
+                value: users?.length,
                 icon: Users,
                 change: stats.users.change,
               },
