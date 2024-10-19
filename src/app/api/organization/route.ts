@@ -4,26 +4,36 @@ import User from "@/app/models/users";
 import { cookieExtraction } from "@/app/helpers/generateToken";
 import Organization from "@/app/models/organization";
 
+interface DecodedToken {
+  _id: string;
+}
+
+interface CreateOrganizationBody {
+  name: string;
+  description?: string;
+  projects?: string[];
+  members?: Array<{ user: string; role: string }>;
+}
+
 export async function POST(request: NextRequest) {
   try {
     await connectDB();
-    const decoded = await cookieExtraction();
+    const decoded = (await cookieExtraction()) as DecodedToken | null;
 
     if (!decoded)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { name, description, projects, members } = await request.json();
+    const { name, description, projects, members }: CreateOrganizationBody =
+      await request.json();
     if (!name)
       return NextResponse.json({ error: "Name is required" }, { status: 400 });
 
-    // decrypt the token and get the user id
-    const _id = decoded._id as string;
+    const _id = decoded._id;
 
     const user = await User.findById(_id);
     if (!user)
       return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-    // create organization
     const organization = await Organization.create({
       name,
       description,
@@ -34,7 +44,6 @@ export async function POST(request: NextRequest) {
       updatedBy: user._id,
     });
 
-    // add organization to user's organizations array
     user.organizations.push(organization._id);
     await user.save();
 
@@ -60,20 +69,19 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   try {
     await connectDB();
-    const decoded = await cookieExtraction();
+    const decoded = (await cookieExtraction()) as DecodedToken | null;
 
     if (!decoded) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const _id = decoded._id as string;
+    const _id = decoded._id;
     const user = await User.findById(_id).select("organizations");
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Fetch organizations with populated admin details
     const organizations = await Organization.find({
       _id: { $in: user.organizations },
     }).select("name description members admin");
@@ -85,25 +93,44 @@ export async function GET() {
       );
     }
 
+    interface OrganizationMember {
+      user: string;
+      role: string;
+      _id: string;
+    }
+
+    interface AdminType {
+      _id: string;
+      fullname: string;
+    }
+
+    interface Organization {
+      _id: string;
+      name: string;
+      description: string;
+      members: OrganizationMember[];
+      admin: string;
+    }
+
     const cleanedOrganizations = await Promise.all(
-      organizations.map(async (org) => {
-        const admin = await User.findById(org.admin).select("fullname").lean();
+      organizations.map(async (org: Organization) => {
+        const admin = (await User.findById(org.admin)
+          .select("fullname")
+          .lean()) as AdminType | null;
+
         return {
           _id: org._id,
           name: org.name,
           description: org.description,
-          members: org.members.map(
-            (member: { user: string; role: string; _id: string }) => ({
-              user: member.user,
-              role: member.role,
-              _id: member._id,
-            })
-          ),
+          members: org.members.map((member: OrganizationMember) => ({
+            user: member.user,
+            role: member.role,
+            _id: member._id,
+          })),
           admin: admin ? { _id: admin._id, fullname: admin.fullname } : null,
         };
       })
     );
-
     return NextResponse.json(
       { organizations: cleanedOrganizations },
       { status: 200 }

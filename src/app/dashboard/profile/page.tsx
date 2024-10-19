@@ -102,7 +102,6 @@ export default function UserProfilePage() {
                       onChange={(e) =>
                         setUser({ ...user, username: e.target.value })
                       }
-                      // icon={<User className="text-gray-400" />}
                     />
                   </div>
                   <div className="space-y-2">
@@ -124,7 +123,6 @@ export default function UserProfilePage() {
                       onChange={(e) =>
                         setUser({ ...user, email: e.target.value })
                       }
-                      // icon={<Mail className="text-gray-400" />}
                     />
                   </div>
                   <div className="flex items-center space-x-2">
@@ -161,7 +159,6 @@ export default function UserProfilePage() {
                       onChange={(e) =>
                         setPassword({ ...password, current: e.target.value })
                       }
-                      // icon={<Key className="text-gray-400" />}
                     />
                   </div>
                   <div className="space-y-2">
@@ -173,7 +170,6 @@ export default function UserProfilePage() {
                       onChange={(e) =>
                         setPassword({ ...password, new: e.target.value })
                       }
-                      // icon={<Key className="text-gray-400" />}
                     />
                   </div>
                   <div className="space-y-2">
@@ -187,7 +183,6 @@ export default function UserProfilePage() {
                       onChange={(e) =>
                         setPassword({ ...password, confirm: e.target.value })
                       }
-                      // icon={<Key className="text-gray-400" />}
                     />
                   </div>
                   <div className="flex items-center space-x-2">

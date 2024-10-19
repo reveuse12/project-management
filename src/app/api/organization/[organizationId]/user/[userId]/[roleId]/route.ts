@@ -34,7 +34,8 @@ export async function POST(
 
     // Check if the user is already a member of the organization
     const isUserAlreadyMember = organization.members.some(
-      (member) => member.user.toString() === userId
+      (member: { user: { toString: () => string } }) =>
+        member.user.toString() === userId
     );
     if (isUserAlreadyMember) {
       return NextResponse.json(

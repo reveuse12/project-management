@@ -13,7 +13,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -40,7 +39,6 @@ import {
   Trash2,
   ArrowUpRight,
 } from "lucide-react";
-
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { getOgranizations } from "@/app/actions/organization/organization";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -91,11 +89,11 @@ interface Memberss {
 
 interface ProjectType {
   _id: string;
-  title?: string;
-  description?: string;
-  status?: string;
+  title: string;
+  description: string;
+  status: string;
   organization: {
-    _id?: string;
+    _id: string;
     name: string;
   };
   members?: Array<{ _id?: string; email?: string; name?: string }>;
@@ -144,12 +142,9 @@ export default function OrganizationManagementPage() {
     setOrganization(organization);
   };
 
-  const handleMutationSuccess = (
-    message: string,
-    updatedData: Organization
-  ) => {
+  const handleMutationSuccess = (message: string) => {
     toast({ title: message });
-    setOrganization({ _id: "", name: "", description: "", members: [] }); // Clear organization with safe default
+    setOrganization({ _id: "", name: "", description: "", members: [] });
   };
 
   const addOrganizationMutation = useMutation({
@@ -157,7 +152,7 @@ export default function OrganizationManagementPage() {
       axios.post("/api/organization", org).then((res) => res.data),
     onSuccess: (data) => {
       addOrganization(data);
-      handleMutationSuccess("New Organization Added", data);
+      handleMutationSuccess("New Organization Added");
     },
     onError: () => toast({ title: "Error Adding Organization" }),
   });
@@ -167,7 +162,7 @@ export default function OrganizationManagementPage() {
       axios.put(`/api/organization/${org._id}`, org).then((res) => res.data),
     onSuccess: (data) => {
       updateOrganization(data);
-      handleMutationSuccess("Organization Updated", data);
+      handleMutationSuccess("Organization Updated");
     },
     onError: () => toast({ title: "Error Updating Organization" }),
   });
@@ -199,7 +194,6 @@ export default function OrganizationManagementPage() {
     queryKey: ["organizations"],
     queryFn: getOgranizations,
   });
-
   const {
     data: Projectss,
     isFetching: ProjectsIsFetching,
@@ -235,7 +229,8 @@ export default function OrganizationManagementPage() {
       );
       return res.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      setProjects([...Projectss, data]);
       toast({
         title: "New Project Added",
       });
@@ -255,7 +250,8 @@ export default function OrganizationManagementPage() {
       );
       return res.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      updateProject(data);
       toast({
         title: "Project Updated",
       });
@@ -274,7 +270,8 @@ export default function OrganizationManagementPage() {
       );
       return res.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      deleteProject(data);
       toast({
         title: "Project Deleted",
       });
@@ -306,7 +303,7 @@ export default function OrganizationManagementPage() {
       );
       return res.data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       toast({
         title: "New Member Added",
       });
@@ -318,15 +315,31 @@ export default function OrganizationManagementPage() {
     },
   });
 
+  const removeMemberMutation = useMutation({
+    mutationFn: async (member: MemberType) => {
+      const res = await axios.delete(
+        `/api/organization/${member.organizationId}/user/${member.userId}/${member.roleId}`
+      );
+      return res.data;
+    },
+    onError: () => {
+      toast({
+        title: "Error Removing Member",
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Member Removed",
+      });
+    },
+  });
+
   const handleUpdateMember = () => {
     addMemberMutation.mutate(newMember);
   };
 
-  const handleRemoveMember = (memberId: string) => {
-    setOrganization({
-      ...organization,
-      members: organization.members!.filter((m) => m.user._id !== memberId),
-    });
+  const handleRemoveMember = (member: MemberType) => {
+    removeMemberMutation.mutate(member);
   };
 
   if (
@@ -480,7 +493,7 @@ export default function OrganizationManagementPage() {
                   <div>
                     <Label htmlFor="organization">Organization</Label>
                     <Select
-                      value={newProject.organization}
+                      value={newProject.organization._id as string}
                       onValueChange={(value) =>
                         setNewProject({ ...newProject, organization: value })
                       }
@@ -721,7 +734,9 @@ export default function OrganizationManagementPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={() => handleRemoveMember(member._id)}
+                        onClick={() =>
+                          handleRemoveMember(member as unknown as MemberType)
+                        }
                       >
                         <Trash2 className="h-4 w-4" />
                         <span className="sr-only">Remove member</span>
