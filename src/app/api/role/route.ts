@@ -53,7 +53,7 @@ export async function GET() {
     }
 
     const roles = await Role.find().sort("name");
-    return NextResponse.json(roles, { status: 200 });
+    return NextResponse.json({ roles }, { status: 200 });
   } catch (error) {
     return NextResponse.json({ error }, { status: 500 });
   }

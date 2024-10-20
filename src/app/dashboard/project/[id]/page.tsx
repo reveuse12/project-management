@@ -38,7 +38,7 @@ import {
   Plus,
   Pencil,
   Trash2,
-  Calendar,
+  // Calendar,
 } from "lucide-react";
 // import { format } from "date-fns";
 
@@ -179,7 +179,7 @@ export default function ProjectManagementPage() {
             <CardHeader>
               <CardTitle>Project Details</CardTitle>
               <CardDescription>
-                Manage your project's information
+                Manage your project&apos;s information
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

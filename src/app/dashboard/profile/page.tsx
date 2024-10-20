@@ -16,7 +16,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { User, Mail, Key, Building, Shield } from "lucide-react";
+import { Building } from "lucide-react";
 
 export default function UserProfilePage() {
   const [user, setUser] = useState({
@@ -208,7 +208,7 @@ export default function UserProfilePage() {
                 <CardHeader>
                   <CardTitle>Organizations</CardTitle>
                   <CardDescription>
-                    Organizations you're a part of.
+                    Organizations you&apos;re a part of.
                   </CardDescription>
                 </CardHeader>
                 <CardContent>

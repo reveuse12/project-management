@@ -1,5 +1,5 @@
 "use client";
-import { Key, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,14 +39,10 @@ import {
   Trash2,
   ArrowUpRight,
 } from "lucide-react";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { getOgranizations } from "@/app/actions/organization/organization";
+import { useMutation } from "@tanstack/react-query";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import axios from "axios";
 import Link from "next/link";
-import Loading from "../loading";
-import { getProjects } from "@/app/actions/project/project";
-import { getUser } from "@/app/actions/user/user";
 import { useToast } from "@/hooks/use-toast";
 import {
   useOrganizationStore,
@@ -54,70 +50,26 @@ import {
   useRoleStore,
   useUsersStore,
 } from "@/app/store/store";
-import { getRoles } from "@/app/actions/roles/roles";
-import { Role } from "@/app/helpers/types";
-
-interface Organization {
-  _id: string;
-  name: string;
-  description: string;
-  projects?: Array<{
-    _id?: string;
-    title?: string;
-    status?: string;
-    members?: Array<{
-      _id?: string;
-      email?: string;
-      name?: string;
-      role?: string;
-    }>;
-  }>;
-  admin?: {
-    _id: string;
-    email?: string;
-    name?: string;
-    fullname?: string;
-  };
-  members?: Array<{ user: { _id: string; fullname: string }; role?: string }>;
-}
-
-interface Memberss {
-  _id: string;
-  username: string;
-  fullname: string;
-  email: string;
-}
-
-interface ProjectType {
-  _id: string;
-  title: string;
-  description: string;
-  status: string;
-  organization: {
-    _id: string;
-    name: string | null;
-  };
-  members?: Array<{ _id?: string; email?: string; name?: string }>;
-  admin?: Array<{ _id?: string; email?: string }>;
-}
-
-interface MemberType {
-  userId: string;
-  roleId: string;
-  organizationId: string;
-}
+import {
+  MemberType,
+  Organization,
+  Project,
+  Role,
+  User,
+} from "@/app/helpers/types";
 
 export default function OrganizationManagementPage() {
   const { toast } = useToast();
   const {
-    setOrganizations,
+    organizations,
     addOrganization,
     updateOrganization,
     deleteOrganization,
   } = useOrganizationStore();
-  const { setProjects, updateProject, deleteProject } = useProjectStore();
-  const { setUsers, addUser, removeUser } = useUsersStore();
-  const { setRoles } = useRoleStore();
+  const { setProjects, updateProject, deleteProject, projects } =
+    useProjectStore();
+  const { users, addUser, removeUser } = useUsersStore();
+  const { roles } = useRoleStore();
 
   const [organization, setOrganization] = useState<Organization>({
     _id: "",
@@ -126,7 +78,7 @@ export default function OrganizationManagementPage() {
     members: [],
   });
 
-  const [newProject, setNewProject] = useState<ProjectType>({
+  const [newProject, setNewProject] = useState<Project>({
     _id: "",
     title: "",
     description: "",
@@ -188,64 +140,8 @@ export default function OrganizationManagementPage() {
     }
   };
 
-  const {
-    data: Organizations,
-    isFetching,
-    isError,
-  } = useQuery({
-    queryKey: ["organizations"],
-    queryFn: async () => {
-      const data = await getOgranizations();
-      setOrganizations(data); // Handle success logic here
-      return data;
-    },
-  });
-  const {
-    data: Projectss,
-    isFetching: ProjectsIsFetching,
-    isError: projectsIsError,
-  } = useQuery({
-    queryKey: ["projects"],
-    queryFn: async () => {
-      const data = await getProjects();
-      setProjects(data);
-      return data;
-    },
-  });
-
-  const {
-    data: Members = [],
-    isFetching: MembersIsFetching,
-    isError: MembersIsError,
-  } = useQuery<Memberss[]>({
-    queryKey: ["members"],
-    queryFn: async () => {
-      const users = await getUser();
-      // Map User[] to Memberss[]
-      return users.map((user: Memberss) => ({
-        _id: user._id,
-        username: user.username, // Assuming `name` from User is the same as `username` in Memberss
-        fullname: user.fullname, // Assuming `name` from User is used as `fullname` in Memberss
-        email: user.email,
-      }));
-    },
-  });
-
-  const {
-    data: Roles,
-    isFetching: RolesIsFetching,
-    isError: RolesIsError,
-  } = useQuery({
-    queryKey: ["roles"],
-    queryFn: async () => {
-      const data = await getRoles();
-      setRoles(data); // Handle success logic here
-      return data; // Handle success logic here
-    },
-  });
-
   const addProjectMutation = useMutation({
-    mutationFn: async (project: ProjectType) => {
+    mutationFn: async (project: Project) => {
       const res = await axios.post(
         `/api/organization/${project.organization?._id}/project`,
         project
@@ -253,7 +149,7 @@ export default function OrganizationManagementPage() {
       return res.data;
     },
     onSuccess: (data) => {
-      setProjects([...Projectss, data]);
+      setProjects([...projects, data]);
       toast({
         title: "New Project Added",
       });
@@ -266,7 +162,7 @@ export default function OrganizationManagementPage() {
   });
 
   const updateProjectMutation = useMutation({
-    mutationFn: async (project: ProjectType) => {
+    mutationFn: async (project: Project) => {
       const res = await axios.put(
         `/api/organization/${project.organization?._id}/project/${project._id}`,
         project
@@ -287,7 +183,7 @@ export default function OrganizationManagementPage() {
   });
 
   const deleteProjectMutation = useMutation({
-    mutationFn: async (project: ProjectType) => {
+    mutationFn: async (project: Project) => {
       const res = await axios.delete(
         `/api/organization/${project.organization?._id}/project/${project._id}`
       );
@@ -315,7 +211,7 @@ export default function OrganizationManagementPage() {
     }
   };
 
-  const handleEditProject = (project: ProjectType) => {
+  const handleEditProject = (project: Project) => {
     setNewProject(project);
   };
 
@@ -367,19 +263,6 @@ export default function OrganizationManagementPage() {
     removeMemberMutation.mutate(member);
   };
 
-  if (
-    RolesIsFetching ||
-    MembersIsFetching ||
-    isFetching ||
-    ProjectsIsFetching
-  ) {
-    return <Loading />;
-  }
-
-  if (isError || projectsIsError || RolesIsError || MembersIsError) {
-    return <div>Error fetching data!</div>;
-  }
-
   return (
     <ScrollArea className="container mx-auto p-4">
       <h1 className="text-3xl font-bold mb-6">Organization Management</h1>
@@ -404,7 +287,7 @@ export default function OrganizationManagementPage() {
             <CardHeader>
               <CardTitle>Organization Details</CardTitle>
               <CardDescription>
-                Manage your organization's information
+                Manage your organization &apos;s information
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -469,8 +352,8 @@ export default function OrganizationManagementPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {Organizations &&
-                    Organizations.organizations.map((project: Organization) => (
+                  {organizations &&
+                    organizations.map((project: Organization) => (
                       <TableRow key={project._id}>
                         <TableCell>{project.name}</TableCell>
                         <TableCell>{project.description}</TableCell>
@@ -530,16 +413,14 @@ export default function OrganizationManagementPage() {
                         <SelectValue placeholder="Select Organization" />
                       </SelectTrigger>
                       <SelectContent>
-                        {Organizations.organizations.map(
-                          (organization: Organization) => (
-                            <SelectItem
-                              key={organization._id}
-                              value={organization._id}
-                            >
-                              {organization.name}
-                            </SelectItem>
-                          )
-                        )}
+                        {organizations.map((organization: Organization) => (
+                          <SelectItem
+                            key={organization._id}
+                            value={organization._id}
+                          >
+                            {organization.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -601,46 +482,44 @@ export default function OrganizationManagementPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {Projectss &&
-                      Projectss.projects.map(
-                        (project: ProjectType, _index: Key) => (
-                          <TableRow key={project._id}>
-                            <TableCell>{project.organization.name}</TableCell>
-                            <TableCell>{project.title}</TableCell>
-                            <TableCell>
-                              <Badge
-                                variant={
-                                  project.status === "completed"
-                                    ? "default"
-                                    : "secondary"
-                                }
-                              >
-                                {project.status}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleEditProject(project)}
-                              >
-                                <Pencil className="h-4 w-4" />
-                                <span className="sr-only">Edit project</span>
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={(e) =>
-                                  deleteProjectMutation.mutate(project)
-                                }
-                                className="ml-2"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        )
-                      )}
+                    {projects &&
+                      projects.map((project: Project) => (
+                        <TableRow key={project._id}>
+                          <TableCell>{project.organization.name}</TableCell>
+                          <TableCell>{project.title}</TableCell>
+                          <TableCell>
+                            <Badge
+                              variant={
+                                project.status === "completed"
+                                  ? "default"
+                                  : "secondary"
+                              }
+                            >
+                              {project.status}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEditProject(project)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                              <span className="sr-only">Edit project</span>
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() =>
+                                deleteProjectMutation.mutate(project)
+                              }
+                              className="ml-2"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
                   </TableBody>
                 </Table>
               </div>
@@ -669,16 +548,14 @@ export default function OrganizationManagementPage() {
                         <SelectValue placeholder="Select Organization" />
                       </SelectTrigger>
                       <SelectContent>
-                        {Organizations.organizations.map(
-                          (organization: Organization) => (
-                            <SelectItem
-                              key={organization._id}
-                              value={organization._id}
-                            >
-                              {organization.name}
-                            </SelectItem>
-                          )
-                        )}
+                        {organizations.map((organization: Organization) => (
+                          <SelectItem
+                            key={organization._id}
+                            value={organization._id}
+                          >
+                            {organization.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -694,11 +571,12 @@ export default function OrganizationManagementPage() {
                         <SelectValue placeholder="Select user" />
                       </SelectTrigger>
                       <SelectContent>
-                        {Members?.map((member: Memberss) => (
-                          <SelectItem key={member._id} value={member._id}>
-                            {member.username}
-                          </SelectItem>
-                        ))}
+                        {users &&
+                          users.map((member: User) => (
+                            <SelectItem key={member._id} value={member._id}>
+                              {member.username}
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -715,7 +593,7 @@ export default function OrganizationManagementPage() {
                         <SelectValue placeholder="Select role" />
                       </SelectTrigger>
                       <SelectContent>
-                        {Roles.map((role: Role) => (
+                        {roles.map((role: Role) => (
                           <SelectItem key={role._id} value={role._id}>
                             {role.name}
                           </SelectItem>
@@ -732,46 +610,47 @@ export default function OrganizationManagementPage() {
                 </div>
               </div>
               <div className="mt-6 space-y-4">
-                {Members?.map((member: Memberss) => (
-                  <div
-                    key={member._id}
-                    className="flex items-center justify-between p-2 border rounded"
-                  >
-                    <div className="flex items-center space-x-4">
-                      <Avatar>
-                        <AvatarImage
-                          src={`/placeholder.svg?height=40&width=40`}
-                          alt={member.fullname}
-                        />
-                        <AvatarFallback>
-                          {/* {member.fullname
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")} */}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium">{member.fullname}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {member.email}
-                        </p>
+                {users &&
+                  users.map((member: User) => (
+                    <div
+                      key={member._id}
+                      className="flex items-center justify-between p-2 border rounded"
+                    >
+                      <div className="flex items-center space-x-4">
+                        <Avatar>
+                          <AvatarImage
+                            src={`/placeholder.svg?height=40&width=40`}
+                            alt={member.fullname}
+                          />
+                          <AvatarFallback>
+                            {member.fullname
+                              .split(" ")
+                              .map((n) => n[0])
+                              .join("")}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium">{member.fullname}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {member.email}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        {/* <Badge variant="outline">{member}</Badge> */}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() =>
+                            handleRemoveMember(member as unknown as MemberType)
+                          }
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span className="sr-only">Remove member</span>
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      {/* <Badge variant="outline">{member}</Badge> */}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() =>
-                          handleRemoveMember(member as unknown as MemberType)
-                        }
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">Remove member</span>
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  ))}
               </div>
             </CardContent>
           </Card>

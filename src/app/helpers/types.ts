@@ -34,17 +34,13 @@ export interface User {
   _id: string;
   name: string;
   email: string;
+  fullname: string;
+  username: string;
 }
 
 export interface Organization {
-  id: string;
-  name: string;
-}
-
-export interface Project {
   _id: string;
   name: string;
-  description?: string;
 }
 
 export interface Task {
@@ -69,15 +65,6 @@ export interface AuthState {
   setRefreshToken: (refreshToken: string) => void;
   setOrganizations: (organizations: Organization[]) => void;
   setProjects: (projects: Project[]) => void;
-}
-
-export interface Organization {
-  _id: string | null;
-  name: string;
-  description?: string | null;
-  members?: User[];
-  projects?: Project[];
-  admin?: User | null;
 }
 
 export interface OrganizationState {
@@ -120,3 +107,53 @@ export const navItems: NavItem[] = [
     label: "login",
   },
 ];
+
+export interface Memberss {
+  _id: string;
+  username: string;
+  fullname: string;
+  email: string;
+}
+
+export interface Organization {
+  _id: string;
+  name: string;
+  description: string;
+  projects?: Array<{
+    _id?: string;
+    title?: string;
+    status?: string;
+    members?: Array<{
+      _id?: string;
+      email?: string;
+      name?: string;
+      role?: string;
+    }>;
+  }>;
+  admin?: {
+    _id: string;
+    email?: string;
+    name?: string;
+    fullname?: string;
+  };
+  members?: Array<{ user: { _id: string; fullname: string }; role?: string }>;
+}
+
+export interface Project {
+  _id: string;
+  title: string;
+  description: string;
+  status: string;
+  organization: {
+    _id: string;
+    name: string | null;
+  };
+  members?: Array<{ _id?: string; email?: string; name?: string }>;
+  admin?: Array<{ _id?: string; email?: string }>;
+}
+
+export interface MemberType {
+  userId: string;
+  roleId: string;
+  organizationId: string;
+}

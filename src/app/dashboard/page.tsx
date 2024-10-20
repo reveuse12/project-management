@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
+// import { Badge } from "@/components/ui/badge";
 import {
   BarChart,
   Bar,
@@ -12,41 +12,119 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
+  // PieChart,
+  // Pie,
+  // Cell,
 } from "recharts";
 import {
   Building2,
   Users,
   Briefcase,
-  CheckSquare,
-  TrendingUp,
+  // TrendingUp,
   ArrowUpRight,
   ArrowDownRight,
-  Loader,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useQuery } from "@tanstack/react-query";
+import {
+  useOrganizationStore,
+  useProjectStore,
+  useRoleStore,
+  useUsersStore,
+} from "../store/store";
+import { getOgranizations } from "../actions/organization/organization";
+import { getProjects } from "../actions/project/project";
 import { getUser } from "../actions/user/user";
+import Loading from "./loading";
+import { getRoles } from "../actions/roles/roles";
+import { Memberss, Project } from "../helpers/types";
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
+// const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
 
 export default function AdminDashboardPage() {
-  const [stats, setStats] = useState({
-    organizations: { total: 25, change: 5 },
-    projects: { total: 78, change: -3 },
-    users: { total: 1250, change: 50 },
-    tasks: { total: 456, change: 22 },
+  const { organizations, setOrganizations } = useOrganizationStore();
+  const { projects, setProjects } = useProjectStore();
+  const { users, setUsers } = useUsersStore();
+  const { roles, setRoles } = useRoleStore();
+  const {
+    data: Organizations,
+    isFetching,
+    isError,
+  } = useQuery({
+    queryKey: ["organizations"],
+    queryFn: async () => {
+      const data = await getOgranizations();
+      setOrganizations(data);
+      return data;
+    },
+  });
+  const {
+    data: Projectss = [],
+    isFetching: ProjectsIsFetching,
+    isError: projectsIsError,
+  } = useQuery<Project[]>({
+    queryKey: ["projects"],
+    queryFn: async () => {
+      const data = await getProjects();
+      setProjects(data);
+      return data;
+    },
   });
 
-  const [projectStatus, setProjectStatus] = useState([
-    { name: "Not Started", value: 10 },
-    { name: "In Progress", value: 25 },
-    { name: "Completed", value: 15 },
-  ]);
+  const {
+    data: Members = [],
+    isFetching: MembersIsFetching,
+    isError: MembersIsError,
+  } = useQuery<Memberss[]>({
+    queryKey: ["members"],
+    queryFn: async () => {
+      const users = await getUser();
+      setUsers(users); // Handle success logic here
+      return users.map((user: Memberss) => ({
+        _id: user._id,
+        username: user.username, // Assuming `name` from User is the same as `username` in Memberss
+        fullname: user.fullname, // Assuming `name` from User is used as `fullname` in Memberss
+        email: user.email,
+      }));
+    },
+  });
 
-  const [monthlyTasks, setMonthlyTasks] = useState([
+  const {
+    data: Roles,
+    isFetching: RolesIsFetching,
+    isError: RolesIsError,
+  } = useQuery({
+    queryKey: ["roles"],
+    queryFn: async () => {
+      const data = await getRoles();
+      setRoles(data); // Handle success logic here
+      return data; // Handle success logic here
+    },
+  });
+
+  const [stats, setStats] = useState({
+    organizations: { total: 0, change: 5 },
+    projects: { total: 0, change: -3 },
+    users: { total: 0, change: 50 },
+    roles: { total: 0, change: 0 },
+  });
+
+  useEffect(() => {
+    setStats({
+      organizations: { total: Organizations?.length, change: 5 },
+      projects: { total: Projectss?.length, change: -3 },
+      users: { total: Members?.length, change: 50 },
+      roles: { total: Roles?.length, change: 0 },
+    });
+  }, [organizations, projects, Members, roles, users]);
+
+  // const [projectStatus, setProjectStatus] = useState([
+  //   { name: "Not Started", value: 10 },
+  //   { name: "In Progress", value: 25 },
+  //   { name: "Completed", value: 15 },
+  // ]);
+
+  const [monthlyTasks] = useState([
     { name: "Jan", tasks: 65 },
     { name: "Feb", tasks: 59 },
     { name: "Mar", tasks: 80 },
@@ -55,53 +133,52 @@ export default function AdminDashboardPage() {
     { name: "Jun", tasks: 55 },
   ]);
 
-  const [recentProjects, setRecentProjects] = useState([
-    {
-      id: "1",
-      title: "Website Redesign",
-      organization: "Acme Inc.",
-      progress: 75,
-    },
-    {
-      id: "2",
-      title: "Mobile App Development",
-      organization: "Tech Corp",
-      progress: 30,
-    },
-    {
-      id: "3",
-      title: "Database Migration",
-      organization: "Innovate LLC",
-      progress: 100,
-    },
-    {
-      id: "4",
-      title: "AI Integration",
-      organization: "Future Systems",
-      progress: 10,
-    },
-  ]);
+  // const [recentProjects, setRecentProjects] = useState([
+  //   {
+  //     id: "1",
+  //     title: "Website Redesign",
+  //     organization: "Acme Inc.",
+  //     progress: 75,
+  //   },
+  //   {
+  //     id: "2",
+  //     title: "Mobile App Development",
+  //     organization: "Tech Corp",
+  //     progress: 30,
+  //   },
+  //   {
+  //     id: "3",
+  //     title: "Database Migration",
+  //     organization: "Innovate LLC",
+  //     progress: 100,
+  //   },
+  //   {
+  //     id: "4",
+  //     title: "AI Integration",
+  //     organization: "Future Systems",
+  //     progress: 10,
+  //   },
+  // ]);
 
-  const [topUsers, setTopUsers] = useState([
-    { id: "1", fullname: "John Doe", email: "john@example.com", tasks: 23 },
-    { id: "2", fullname: "Jane Smith", email: "jane@example.com", tasks: 19 },
-    { id: "3", fullname: "Bob Johnson", email: "bob@example.com", tasks: 17 },
-    { id: "4", fullname: "Alice Brown", email: "alice@example.com", tasks: 15 },
-  ]);
+  // const [topUsers, setTopUsers] = useState([
+  //   { id: "1", fullname: "John Doe", email: "john@example.com", tasks: 23 },
+  //   { id: "2", fullname: "Jane Smith", email: "jane@example.com", tasks: 19 },
+  //   { id: "3", fullname: "Bob Johnson", email: "bob@example.com", tasks: 17 },
+  //   { id: "4", fullname: "Alice Brown", email: "alice@example.com", tasks: 15 },
+  // ]);
 
-  const {
-    data: users,
-    isLoading: usersLoading,
-    error: usersError,
-  } = useQuery({
-    queryKey: ["users"],
-    queryFn: getUser,
-  });
+  if (
+    RolesIsFetching ||
+    MembersIsFetching ||
+    isFetching ||
+    ProjectsIsFetching
+  ) {
+    return <Loading />;
+  }
 
-  console.log("users", users?.length);
-
-  if (usersLoading) return <Loader />;
-  if (usersError) return <p>Eeor</p>;
+  if (isError || projectsIsError || RolesIsError || MembersIsError) {
+    return <div>Error fetching data!</div>;
+  }
 
   return (
     <ScrollArea>
@@ -125,15 +202,9 @@ export default function AdminDashboardPage() {
               },
               {
                 title: "Users",
-                value: users?.length,
+                value: stats.users.total,
                 icon: Users,
                 change: stats.users.change,
-              },
-              {
-                title: "Tasks",
-                value: stats.tasks.total,
-                icon: CheckSquare,
-                change: stats.tasks.change,
               },
             ].map((item) => (
               <Card key={item.title}>
@@ -144,9 +215,7 @@ export default function AdminDashboardPage() {
                   <item.icon className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">
-                    {item.value.toLocaleString()}
-                  </div>
+                  <div className="text-2xl font-bold">{item.value}</div>
                   <p className="text-xs text-muted-foreground">
                     {item.change > 0 ? (
                       <span className="text-green-600 flex items-center">
@@ -182,7 +251,7 @@ export default function AdminDashboardPage() {
               </ResponsiveContainer>
             </CardContent>
           </Card>
-          <Card className="col-span-3">
+          {/* <Card className="col-span-3">
             <CardHeader>
               <CardTitle>Project Status</CardTitle>
             </CardHeader>
@@ -212,7 +281,7 @@ export default function AdminDashboardPage() {
                 </PieChart>
               </ResponsiveContainer>
             </CardContent>
-          </Card>
+          </Card> */}
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
@@ -222,8 +291,8 @@ export default function AdminDashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-8">
-                {recentProjects.map((project) => (
-                  <div key={project.id} className="flex items-center">
+                {Projectss.map((project) => (
+                  <div key={project._id} className="flex items-center">
                     <Avatar className="h-9 w-9">
                       <AvatarImage
                         src={`/placeholder.svg?height=36&width=36`}
@@ -238,10 +307,10 @@ export default function AdminDashboardPage() {
                         {project.title}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        {project.organization}
+                        {project.organization.name}
                       </p>
                     </div>
-                    <div className="ml-auto font-medium">
+                    {/* <div className="ml-auto font-medium">
                       {project.progress === 100 ? (
                         <Badge>Completed</Badge>
                       ) : (
@@ -250,7 +319,7 @@ export default function AdminDashboardPage() {
                           {project.progress}%
                         </span>
                       )}
-                    </div>
+                    </div> */}
                   </div>
                 ))}
               </div>
@@ -262,8 +331,8 @@ export default function AdminDashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-8">
-                {topUsers.map((user) => (
-                  <div key={user.id} className="flex items-center">
+                {users.map((user) => (
+                  <div key={user._id} className="flex items-center">
                     <Avatar className="h-9 w-9">
                       <AvatarImage
                         src={`/placeholder.svg?height=36&width=36`}
@@ -284,9 +353,9 @@ export default function AdminDashboardPage() {
                         {user.email}
                       </p>
                     </div>
-                    <div className="ml-auto font-medium">
+                    {/* <div className="ml-auto font-medium">
                       {user.tasks} tasks
-                    </div>
+                    </div> */}
                   </div>
                 ))}
               </div>
