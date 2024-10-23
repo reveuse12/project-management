@@ -8,7 +8,6 @@ export async function GET(request: NextRequest) {
   try {
     await connectDB();
     const decoded = await cookieExtraction();
-    console.log(request.json(), "in project get");
     if (!decoded) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

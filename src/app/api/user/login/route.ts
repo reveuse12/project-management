@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
 
     const options = {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: process.env.NODE_ENV,
       sameSite: "Strict",
       path: "/",
       maxAge: 60 * 60 * 24 * 7,

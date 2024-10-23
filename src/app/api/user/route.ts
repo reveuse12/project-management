@@ -12,8 +12,6 @@ export async function GET(request: NextRequest) {
     if (!decoded) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    console.log(request.json(), "in user route");
-
     const userId = decoded._id;
     const user = await User.findById(userId);
 
