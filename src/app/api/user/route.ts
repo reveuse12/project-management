@@ -1,9 +1,9 @@
 import connectDB from "@/app/db/connectDB";
 import { cookieExtraction } from "@/app/helpers/generateToken";
 import User from "@/app/models/users";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     connectDB();
 

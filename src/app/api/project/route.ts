@@ -1,10 +1,10 @@
 import connectDB from "@/app/db/connectDB";
 import { cookieExtraction } from "@/app/helpers/generateToken";
 import Projects from "@/app/models/project";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 // Get all projects
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     await connectDB();
     const decoded = await cookieExtraction();
