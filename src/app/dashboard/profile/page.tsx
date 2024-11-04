@@ -1,6 +1,5 @@
 "use client";
-
-import { useState } from "react";
+import { Key, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,38 +13,30 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Building } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { getUserProfile } from "@/app/actions/user/user";
 
 export default function UserProfilePage() {
-  const [user, setUser] = useState({
-    username: "johndoe",
-    fullname: "John Doe",
-    email: "john@example.com",
-    isVerified: true,
-    isSuperAdmin: false,
-    organizations: [
-      {
-        organization: { _id: "1", name: "Acme Inc." },
-        role: { _id: "1", name: "Admin" },
-      },
-      {
-        organization: { _id: "2", name: "Tech Corp" },
-        role: { _id: "2", name: "Member" },
-      },
-    ],
-  });
-
   const [password, setPassword] = useState({
     current: "",
     new: "",
     confirm: "",
   });
 
+  const {
+    data: UserProfile,
+    isLoading,
+    isError,
+  } = useQuery({
+    queryKey: ["userProfile"],
+    queryFn: getUserProfile,
+  });
+
   const handleUpdateProfile = () => {
     // In a real app, this would make an API call to update the user profile
-    console.log("Profile updated:", user);
+    console.log("Profile updated:");
   };
 
   const handleChangePassword = () => {
@@ -54,6 +45,12 @@ export default function UserProfilePage() {
     setPassword({ current: "", new: "", confirm: "" });
   };
 
+  if (isLoading) {
+    return <div>Loading...</div>;
+  }
+  if (isError) {
+    return <div>Error fetching user profile</div>;
+  }
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-3xl font-bold mb-6">User Profile</h1>
@@ -66,13 +63,15 @@ export default function UserProfilePage() {
             <Avatar className="w-32 h-32 mb-4">
               <AvatarImage
                 src="/placeholder.svg?height=128&width=128"
-                alt={user.fullname}
+                alt={UserProfile.fullname}
               />
               <AvatarFallback>
-                {user.fullname
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")}
+                {UserProfile.fullname
+                  ? UserProfile.fullname
+                      .split(" ")
+                      .map((n: string[]) => n[0])
+                      .join("")
+                  : ""}
               </AvatarFallback>
             </Avatar>
             <Button>Change Picture</Button>
@@ -98,20 +97,20 @@ export default function UserProfilePage() {
                     <Label htmlFor="username">Username</Label>
                     <Input
                       id="username"
-                      value={user.username}
-                      onChange={(e) =>
-                        setUser({ ...user, username: e.target.value })
-                      }
+                      value={UserProfile.username}
+                      // onChange={(e) =>
+                      //   setUser({ ...user, username: e.target.value })
+                      // }
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="fullname">Full Name</Label>
                     <Input
                       id="fullname"
-                      value={user.fullname}
-                      onChange={(e) =>
-                        setUser({ ...user, fullname: e.target.value })
-                      }
+                      value={UserProfile.fullname}
+                      // onChange={(e) =>
+                      //   setUser({ ...user, fullname: e.target.value })
+                      // }
                     />
                   </div>
                   <div className="space-y-2">
@@ -119,21 +118,11 @@ export default function UserProfilePage() {
                     <Input
                       id="email"
                       type="email"
-                      value={user.email}
-                      onChange={(e) =>
-                        setUser({ ...user, email: e.target.value })
-                      }
+                      value={UserProfile.email}
+                      // onChange={(e) =>
+                      //   setUser({ ...user, email: e.target.value })
+                      // }
                     />
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="verified"
-                      checked={user.isVerified}
-                      onCheckedChange={(checked) =>
-                        setUser({ ...user, isVerified: checked })
-                      }
-                    />
-                    <Label htmlFor="verified">Verified Account</Label>
                   </div>
                 </CardContent>
                 <CardFooter>
@@ -188,10 +177,10 @@ export default function UserProfilePage() {
                   <div className="flex items-center space-x-2">
                     <Switch
                       id="superadmin"
-                      checked={user.isSuperAdmin}
-                      onCheckedChange={(checked) =>
-                        setUser({ ...user, isSuperAdmin: checked })
-                      }
+                      checked={UserProfile.isSuperAdmin}
+                      // onCheckedChange={(checked) =>
+                      //   setUser({ ...user, isSuperAdmin: checked })
+                      // }
                     />
                     <Label htmlFor="superadmin">Super Admin</Label>
                   </div>
@@ -213,25 +202,30 @@ export default function UserProfilePage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {user.organizations.map((org, index) => (
-                      <div
-                        key={index}
-                        className="flex items-center justify-between p-2 border rounded"
-                      >
-                        <div className="flex items-center space-x-4">
-                          <Building className="text-gray-400" />
-                          <div>
-                            <p className="font-medium">
-                              {org.organization.name}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
+                    {UserProfile.organizations.map(
+                      (
+                        org: {
+                          name: string | null | undefined;
+                        },
+                        index: Key | null | undefined
+                      ) => (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-2 border rounded"
+                        >
+                          <div className="flex items-center space-x-4">
+                            <Building className="text-gray-400" />
+                            <div>
+                              <p className="font-medium">{org.name}</p>
+                              {/* <p className="text-sm text-muted-foreground">
                               Role: {org.role.name}
-                            </p>
+                            </p> */}
+                            </div>
                           </div>
+                          {/* <Badge variant="outline">{org.role.name}</Badge> */}
                         </div>
-                        <Badge variant="outline">{org.role.name}</Badge>
-                      </div>
-                    ))}
+                      )
+                    )}
                   </div>
                 </CardContent>
               </Card>

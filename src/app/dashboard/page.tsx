@@ -42,10 +42,10 @@ import { Memberss, Project } from "../helpers/types";
 // const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
 
 export default function AdminDashboardPage() {
-  const { organizations, setOrganizations } = useOrganizationStore();
-  const { projects, setProjects } = useProjectStore();
+  const { setOrganizations } = useOrganizationStore();
+  const { setProjects } = useProjectStore();
   const { users, setUsers } = useUsersStore();
-  const { roles, setRoles } = useRoleStore();
+  const { setRoles } = useRoleStore();
   const {
     data: Organizations,
     isFetching,
@@ -116,7 +116,7 @@ export default function AdminDashboardPage() {
       users: { total: Members?.length, change: 50 },
       roles: { total: Roles?.length, change: 0 },
     });
-  }, [organizations, projects, Members, roles, users]);
+  }, [Organizations?.length, Projectss?.length, Roles?.length, users?.length]);
 
   // const [projectStatus, setProjectStatus] = useState([
   //   { name: "Not Started", value: 10 },
