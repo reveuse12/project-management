@@ -1,5 +1,5 @@
 "use client";
-import { Key, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,45 +12,121 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { Building } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { getUserProfile } from "@/app/actions/user/user";
+import axios from "axios";
+import Loading from "../loading";
+
+// Types for profile and password state
+interface Profile {
+  _id: string;
+  fullname: string;
+  email: string;
+  username: string;
+  isSuperAdmin: boolean;
+  organizations: { _id: string; name: string }[];
+}
+
+interface Password {
+  current: string;
+  new: string;
+  confirm: string;
+}
 
 export default function UserProfilePage() {
-  const [password, setPassword] = useState({
+  const { toast } = useToast();
+  const [password, setPassword] = useState<Password>({
     current: "",
     new: "",
     confirm: "",
+  });
+
+  const [profile, setProfile] = useState<Profile>({
+    _id: "1",
+    fullname: "John Doe",
+    email: "john@example.com",
+    username: "johndoe",
+    isSuperAdmin: false,
+    organizations: [{ _id: "1", name: "Acme Inc." }],
   });
 
   const {
     data: UserProfile,
     isLoading,
     isError,
-  } = useQuery({
+  } = useQuery<Profile>({
     queryKey: ["userProfile"],
-    queryFn: getUserProfile,
+    queryFn: async () => {
+      const res = await getUserProfile();
+      setProfile(res);
+      return res;
+    },
+  });
+
+  const profileUpdateMutation = useMutation<Profile, Error, Profile>({
+    mutationFn: async (data) => {
+      const res = await axios.put(`/api/user/${UserProfile?._id}`, data);
+      return res.data;
+    },
+    onSuccess: (data) => {
+      setProfile(data);
+      toast({
+        title: "Profile updated successfully",
+      });
+    },
+    onError: (error) => {
+      console.error("Error updating profile:", error);
+      toast({
+        title: "Error updating profile",
+      });
+    },
+  });
+
+  const passwordUpdateMutation = useMutation<void, Error, Password>({
+    mutationFn: async (data) => {
+      const res = await axios.patch(`/api/user/${UserProfile?._id}`, {
+        currentPassword: data.current,
+        newPassword: data.new,
+      });
+      return res.data;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Password changed successfully",
+      });
+      setPassword({ current: "", new: "", confirm: "" });
+    },
+    onError: (error) => {
+      console.error("Error changing password:", error);
+      toast({
+        title: "Error changing password",
+      });
+    },
   });
 
   const handleUpdateProfile = () => {
-    // In a real app, this would make an API call to update the user profile
-    console.log("Profile updated:");
+    profileUpdateMutation.mutate(profile);
   };
 
   const handleChangePassword = () => {
-    // In a real app, this would make an API call to change the password
-    console.log("Password change requested:", password);
-    setPassword({ current: "", new: "", confirm: "" });
+    if (password.new !== password.confirm) {
+      toast({ title: "Passwords do not match" });
+      return;
+    }
+    passwordUpdateMutation.mutate(password);
   };
 
-  if (isLoading) {
-    return <div>Loading...</div>;
-  }
-  if (isError) {
-    return <div>Error fetching user profile</div>;
-  }
+  const handleChange = (field: keyof Profile, value: string | boolean) => {
+    setProfile((prev) => ({ ...prev, [field]: value }));
+  };
+
+  if (isLoading) return <Loading />;
+  if (isError) return <div>Error fetching user profile</div>;
+
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-3xl font-bold mb-6">User Profile</h1>
@@ -63,13 +139,13 @@ export default function UserProfilePage() {
             <Avatar className="w-32 h-32 mb-4">
               <AvatarImage
                 src="/placeholder.svg?height=128&width=128"
-                alt={UserProfile.fullname}
+                alt={UserProfile?.fullname || ""}
               />
               <AvatarFallback>
-                {UserProfile.fullname
+                {UserProfile?.fullname
                   ? UserProfile.fullname
                       .split(" ")
-                      .map((n: string[]) => n[0])
+                      .map((n) => n[0])
                       .join("")
                   : ""}
               </AvatarFallback>
@@ -97,20 +173,16 @@ export default function UserProfilePage() {
                     <Label htmlFor="username">Username</Label>
                     <Input
                       id="username"
-                      value={UserProfile.username}
-                      // onChange={(e) =>
-                      //   setUser({ ...user, username: e.target.value })
-                      // }
+                      value={profile.username}
+                      onChange={(e) => handleChange("username", e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="fullname">Full Name</Label>
                     <Input
                       id="fullname"
-                      value={UserProfile.fullname}
-                      // onChange={(e) =>
-                      //   setUser({ ...user, fullname: e.target.value })
-                      // }
+                      value={profile.fullname}
+                      onChange={(e) => handleChange("fullname", e.target.value)}
                     />
                   </div>
                   <div className="space-y-2">
@@ -118,10 +190,8 @@ export default function UserProfilePage() {
                     <Input
                       id="email"
                       type="email"
-                      value={UserProfile.email}
-                      // onChange={(e) =>
-                      //   setUser({ ...user, email: e.target.value })
-                      // }
+                      value={profile.email}
+                      onChange={(e) => handleChange("email", e.target.value)}
                     />
                   </div>
                 </CardContent>
@@ -177,10 +247,10 @@ export default function UserProfilePage() {
                   <div className="flex items-center space-x-2">
                     <Switch
                       id="superadmin"
-                      checked={UserProfile.isSuperAdmin}
-                      // onCheckedChange={(checked) =>
-                      //   setUser({ ...user, isSuperAdmin: checked })
-                      // }
+                      checked={profile.isSuperAdmin}
+                      onCheckedChange={(checked) =>
+                        handleChange("isSuperAdmin", checked)
+                      }
                     />
                     <Label htmlFor="superadmin">Super Admin</Label>
                   </div>
@@ -202,30 +272,19 @@ export default function UserProfilePage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
-                    {UserProfile.organizations.map(
-                      (
-                        org: {
-                          name: string | null | undefined;
-                        },
-                        index: Key | null | undefined
-                      ) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between p-2 border rounded"
-                        >
-                          <div className="flex items-center space-x-4">
-                            <Building className="text-gray-400" />
-                            <div>
-                              <p className="font-medium">{org.name}</p>
-                              {/* <p className="text-sm text-muted-foreground">
-                              Role: {org.role.name}
-                            </p> */}
-                            </div>
+                    {UserProfile?.organizations.map((org) => (
+                      <div
+                        key={org._id}
+                        className="flex items-center justify-between p-2 border rounded"
+                      >
+                        <div className="flex items-center space-x-4">
+                          <Building className="text-gray-400" />
+                          <div>
+                            <p className="font-medium">{org.name}</p>
                           </div>
-                          {/* <Badge variant="outline">{org.role.name}</Badge> */}
                         </div>
-                      )
-                    )}
+                      </div>
+                    ))}
                   </div>
                 </CardContent>
               </Card>
